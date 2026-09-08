@@ -1,0 +1,30 @@
+# Ambiente de desenvolvimento local do SISDEC.
+# Sobe apenas o banco de dados — as três aplicações rodam fora do Docker,
+# cada uma com o seu próprio `npm run dev` (ver docs/arquitetura.md, seção 5.1).
+#
+#   docker compose up -d      inicia o PostgreSQL
+#   docker compose ps         verifica a situação
+#   docker compose down       encerra (os dados são preservados no volume)
+#   docker compose down -v    encerra e APAGA os dados
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: sisdec-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sisdec
+      POSTGRES_PASSWORD: sisdec
+      POSTGRES_DB: sisdec
+    ports:
+      - '5432:5432'
+    volumes:
+      - sisdec-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U sisdec -d sisdec']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  sisdec-postgres-data:
