@@ -158,6 +158,108 @@ describe('Gestão de ocorrências (e2e)', () => {
 
       expect(body.data[0]).not.toHaveProperty('description');
     });
+
+    describe('ordenação (RF-API-71)', () => {
+      /** Protocolos da listagem, na ordem em que a API os devolveu. */
+      async function listar(query: string): Promise<string[]> {
+        const { body } = await request(app.getHttpServer())
+          .get(`/api/v1/reports?pageSize=100&search=${MARCA}&${query}`)
+          .set('Authorization', `Bearer ${agente}`)
+          .expect(200);
+        return body.data.map((r: { protocolNumber: string }) => r.protocolNumber);
+      }
+
+      it('ordena da mais recente para a mais antiga por padrão', async () => {
+        await novaOcorrencia();
+        await novaOcorrencia();
+
+        const { body } = await request(app.getHttpServer())
+          .get(`/api/v1/reports?pageSize=100&search=${MARCA}`)
+          .set('Authorization', `Bearer ${agente}`)
+          .expect(200);
+
+        const datas = body.data.map((r: { createdAt: string }) => Date.parse(r.createdAt));
+        expect(datas).toEqual([...datas].sort((a, b) => b - a));
+      });
+
+      it('inverte a ordem da data quando pedido', async () => {
+        const decrescente = await listar('sort=createdAt&order=desc');
+        const crescente = await listar('sort=createdAt&order=asc');
+
+        expect(crescente).toEqual([...decrescente].reverse());
+      });
+
+      it('ordena por prioridade, da mais alta para a mais baixa', async () => {
+        await emAtendimento(); // HIGH
+        const critica = await novaOcorrencia();
+        await request(app.getHttpServer())
+          .patch(`/api/v1/reports/${critica}/triage/start`)
+          .set('Authorization', `Bearer ${coord}`)
+          .expect(200);
+        await request(app.getHttpServer())
+          .patch(`/api/v1/reports/${critica}/triage`)
+          .set('Authorization', `Bearer ${coord}`)
+          .send({ outcome: 'ACCEPT', priority: 'CRITICAL' })
+          .expect(200);
+
+        const { body } = await request(app.getHttpServer())
+          .get(`/api/v1/reports?pageSize=100&search=${MARCA}&sort=priority&order=desc`)
+          .set('Authorization', `Bearer ${agente}`)
+          .expect(200);
+
+        const ordem = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'];
+        const postos = body.data
+          .filter((r: { priority: string | null }) => r.priority !== null)
+          .map((r: { priority: string }) => ordem.indexOf(r.priority));
+
+        expect(postos).toEqual([...postos].sort((a, b) => a - b));
+      });
+
+      it('mantém as ocorrências sem prioridade no fim, nas duas direções', async () => {
+        for (const order of ['desc', 'asc']) {
+          const { body } = await request(app.getHttpServer())
+            .get(`/api/v1/reports?pageSize=100&search=${MARCA}&sort=priority&order=${order}`)
+            .set('Authorization', `Bearer ${agente}`)
+            .expect(200);
+
+          const semPrioridade: boolean[] = body.data.map(
+            (r: { priority: string | null }) => r.priority === null,
+          );
+          const primeiraSemPrioridade = semPrioridade.indexOf(true);
+          const depoisDela =
+            primeiraSemPrioridade === -1 ? [] : semPrioridade.slice(primeiraSemPrioridade);
+
+          // Nenhuma ocorrência classificada aparece depois de uma sem classificação.
+          expect(depoisDela).not.toContain(false);
+        }
+      });
+
+      it('pagina de forma estável, sem repetir nem pular ocorrências', async () => {
+        // O desempate por id é o que garante isto quando há empate de prioridade.
+        const pagina = async (page: number) => {
+          const { body } = await request(app.getHttpServer())
+            .get(`/api/v1/reports?pageSize=3&page=${page}&search=${MARCA}&sort=priority&order=desc`)
+            .set('Authorization', `Bearer ${agente}`)
+            .expect(200);
+          return body.data.map((r: { id: string }) => r.id);
+        };
+
+        const todas = [...(await pagina(1)), ...(await pagina(2)), ...(await pagina(3))];
+        expect(new Set(todas).size).toBe(todas.length);
+      });
+
+      it('recusa campo de ordenação fora da lista branca', async () => {
+        await request(app.getHttpServer())
+          .get('/api/v1/reports?sort=description')
+          .set('Authorization', `Bearer ${agente}`)
+          .expect(400);
+
+        await request(app.getHttpServer())
+          .get('/api/v1/reports?sort=createdAt&order=aleatoria')
+          .set('Authorization', `Bearer ${agente}`)
+          .expect(400);
+      });
+    });
   });
 
   describe('GET /reports/:id', () => {

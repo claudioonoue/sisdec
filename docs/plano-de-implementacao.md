@@ -427,13 +427,20 @@ B2, então registro público e autenticação podem ser construídos em qualquer
 
 ## 5. Cobertura dos requisitos
 
-As etapas cobrem os **332 requisitos** dos seis documentos, sem sobra:
+As etapas cobrem os **333 requisitos** dos seis documentos, sem sobra:
 
 | Aplicação | Requisitos | Etapas |
 |---|---|---|
-| API | 70 RF + 51 RNF | B0 a B7 |
+| API | 71 RF + 51 RNF | B0 a B7, e `RF-API-71` em O2 |
 | Portal de Operações | 65 RF + 56 RNF | O1 a O7 |
 | Portal do Cidadão | 42 RF + 48 RNF | C1 a C5 |
+
+> `RF-API-71` (ordenação de `GET /reports`) nasceu **durante a etapa O2**, e não em B5, porque
+> foi ali que a falta apareceu: o `RF-OP-19` pede ordenação por data e prioridade na lista, o
+> `RNF-OP-20` proíbe ordenar no navegador, e nenhum requisito da API cobria o caso. É uma
+> divergência entre documentos de requisitos, da mesma família das 21 que a verificação
+> cruzada encontrou — só que esta não aparecia em nenhum dos dois documentos, e por isso só
+> podia ser vista ao construir a tela.
 
 Um requisito que não apareça em nenhuma etapa é sinal de plano incompleto, não de requisito
 dispensável.

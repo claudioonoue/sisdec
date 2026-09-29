@@ -27,5 +27,17 @@ export function apiBaseUrl(): string {
   return configuredApiUrl.replace(/\/+$/, '');
 }
 
+/**
+ * Origem da API, sem o caminho.
+ *
+ * As URLs de anexo devolvidas pela API são caminhos absolutos no servidor dela
+ * (`/api/v1/attachments/...`), não relativos ao prefixo — juntá-las à base
+ * duplicaria o `/api/v1`. O navegador precisa da origem para buscar a imagem
+ * (`RNF-OP-18`: sempre pela URL servida pela API).
+ */
+export function apiOrigin(): string {
+  return new URL(apiBaseUrl()).origin;
+}
+
 /** Tempo limite de cada requisição à API (RNF-OP-27). */
 export const REQUEST_TIMEOUT_MS = 10_000;

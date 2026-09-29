@@ -56,6 +56,15 @@ E 14 ocorrências cobrindo as seis situações, as quatro prioridades, seis bair
 coordenadas, identificadas e anônimas, espalhadas nos últimos 40 dias — o bastante para lista,
 filtros, painel, linha do tempo e mapa terem o que mostrar.
 
+**As fotos exigem a API no ar.** Sete delas, em quatro ocorrências, são enviadas pelo
+`POST /reports/:id/attachments` — o mesmo endpoint do Portal do Cidadão. O seed **não** grava
+em `UPLOAD_DIR`: só `modules/attachments` conhece caminho de arquivo
+([decisão 07](../../docs/arquitetura.md#armazenamento-de-anexos-decisão-07)), e escrever ali
+por fora furaria esse limite sem aparecer em nenhuma busca por `fs` nos módulos. As imagens são
+geradas em `prisma/demo-image.ts`, e não versionadas: o envio confere o tipo pela assinatura do
+arquivo, então precisam ser imagens de verdade. Sem a API no ar o seed avisa e segue — o resto
+dos dados é criado normalmente.
+
 **Não apaga nada.** As contas são criadas ou atualizadas pelo e-mail, sem sobrescrever senha
 trocada pela API; as ocorrências só entram quando o banco ainda não tem nenhuma. Para inserir
 mesmo assim, `SEED_DEMO_FORCE=1 npm run seed:demo`. Os protocolos continuam a sequência do

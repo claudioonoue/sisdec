@@ -1,6 +1,14 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsDateString, IsEnum, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+import {
+  IsDateString,
+  IsEnum,
+  IsIn,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+} from 'class-validator';
 import { PaginationQueryDto } from '../../../common/dto/pagination.dto.js';
 import {
   Priority,
@@ -8,6 +16,14 @@ import {
   ReportStatus,
   ReportType,
 } from '../../../generated/prisma/enums.js';
+import {
+  DEFAULT_SORT_DIRECTION,
+  DEFAULT_SORT_FIELD,
+  REPORT_SORT_FIELDS,
+  type ReportSortField,
+  SORT_DIRECTIONS,
+  type SortDirection,
+} from '../report-sort.js';
 
 /** Filtros da listagem de ocorrências (RF-API-32), todos combináveis. */
 export class ListReportsQueryDto extends PaginationQueryDto {
@@ -58,4 +74,22 @@ export class ListReportsQueryDto extends PaginationQueryDto {
   @Type(() => String)
   @MaxLength(200)
   search?: string;
+
+  @ApiPropertyOptional({
+    enum: REPORT_SORT_FIELDS,
+    default: DEFAULT_SORT_FIELD,
+    description: 'Campo de ordenação (RF-API-71)',
+  })
+  @IsOptional()
+  @IsIn(REPORT_SORT_FIELDS, { message: `sort deve ser um de: ${REPORT_SORT_FIELDS.join(', ')}` })
+  sort?: ReportSortField;
+
+  @ApiPropertyOptional({
+    enum: SORT_DIRECTIONS,
+    default: DEFAULT_SORT_DIRECTION,
+    description: 'Sentido da ordenação',
+  })
+  @IsOptional()
+  @IsIn(SORT_DIRECTIONS, { message: `order deve ser um de: ${SORT_DIRECTIONS.join(', ')}` })
+  order?: SortDirection;
 }

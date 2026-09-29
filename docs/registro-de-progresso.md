@@ -16,9 +16,9 @@ fundação do Portal de Operações.
 | Frente | Situação |
 |---|---|
 | Documentação do projeto | ✅ Completa para a etapa atual — 15 documentos |
-| Requisitos (RF e RNF) | ✅ 332 requisitos, nas três aplicações |
+| Requisitos (RF e RNF) | ✅ 333 requisitos, nas três aplicações |
 | Contrato da API — especificação | ✅ 27 rotas especificadas e conferidas contra os requisitos |
-| Plano de implementação | ✅ 20 etapas, cobrindo os 332 requisitos |
+| Plano de implementação | ✅ 20 etapas, cobrindo os 333 requisitos |
 | Ambiente de desenvolvimento | ✅ PostgreSQL em Docker, `.env` das três aplicações |
 | Scaffold das três aplicações | ✅ Sobem e respondem |
 | Modelo de dados no Prisma | ✅ 5 entidades, 5 enumerações e a primeira migração aplicada |
@@ -32,11 +32,13 @@ fundação do Portal de Operações.
 | Fechamento da API (etapa B7) | ✅ Concluída e verificada |
 | Contrato da API — implementação | ✅ **As 27 rotas implementadas**, conferidas contra `api.md` |
 | Fundação e sessão do Portal de Operações (etapa O1) | ✅ Concluída e verificada |
-| **Telas do Portal de Operações** | ⬜ Ocorrências, painel, mapa e agentes — etapas O2 a O6 |
+| Lista e detalhe da ocorrência (etapa O2) | ✅ Concluída e verificada |
+| **Telas restantes do Portal de Operações** | ⬜ Atendimento, painel, mapa e agentes — etapas O3 a O6 |
 | **Portal do Cidadão** | ⬜ Apenas a página inicial do scaffold |
 
-Em uma frase: **a API está pronta — as 27 rotas, 247 testes; o Portal de Operações já
-autentica e navega, e faltam as suas telas e o Portal do Cidadão inteiro.**
+Em uma frase: **a API está pronta — as 27 rotas, 259 testes; o Portal de Operações já
+consulta as ocorrências ponta a ponta, e faltam o atendimento, o painel, o mapa, os agentes e
+o Portal do Cidadão inteiro.**
 
 ## 2. Linha do tempo
 
@@ -376,6 +378,91 @@ vendo sair `SISDEC-2026-000015`. A suíte e2e continua passando com os dados de 
 banco (104 testes), e eles sobrevivem à execução dela: a limpeza das suítes de fato só alcança
 o que elas mesmas criaram.
 
+### 29 de setembro de 2026 — etapa O2: lista e detalhe da ocorrência
+
+Conforme o [plano](plano-de-implementacao.md#o2-lista-e-detalhe-da-ocorrência).
+
+- `/ocorrencias` com tabela semântica, nove filtros combináveis, busca com atraso de 400 ms,
+  ordenação por data e por prioridade, paginação e atalho para as próprias ocorrências.
+- `/ocorrencias/[id]` com relato, fotos com ampliação, mapa do ponto, dados do cidadão ou a
+  marca de registro anônimo, e histórico distinguindo interno de visível ao cidadão.
+- `<ReportMap>` em `components/map/`, o único ponto do portal que importa o Leaflet.
+- Extensão do seed de demonstração com fotos.
+
+**A etapa revelou uma lacuna entre os dois documentos de requisitos.** O `RF-OP-19` pede
+ordenação da lista por data e por prioridade; o `RNF-OP-20` proíbe ordenar no navegador — e
+com razão, porque a lista é paginada e ordenar a página corrente reordenaria vinte linhas em
+vez da lista. Só que **nenhum requisito da API previa ordenação**: `GET /reports` sempre
+devolvia por data decrescente. Não era divergência entre dois textos, como as 21 que a
+verificação cruzada encontrou; era uma ausência nos dois, que só aparece ao construir a tela.
+Entrou como `RF-API-71`, com lista branca de dois campos — não um nome de coluna vindo da
+query —, ocorrências sem prioridade sempre ao fim e desempate por `id`, sem o qual a paginação
+repete e pula linhas em caso de empate. Seis testes e2e e sete unitários.
+
+Três decisões da tela:
+
+- **Os filtros vivem na URL**, não em estado de componente. `RF-OP-21` (lista recarregável e
+  compartilhável) e `RNF-OP-03` (filtros preservados ao voltar do detalhe) saem de graça
+  disso: voltar é navegar para a mesma URL, e não há estado a restaurar. O detalhe carrega o
+  recorte em um parâmetro, então **a volta funciona até para quem chegou por um link colado**,
+  sem depender do histórico do navegador.
+- **As cores de situação e prioridade moram em `types/`**, junto das enumerações, porque a
+  chave do mapa é um valor da API e o `RNF-OP-45` restringe esses literais àquela pasta. São
+  `Record` sem opcionais: acrescentar uma situação sem lhe dar cor **não compila**.
+- **A ampliação da foto é um `<dialog>` nativo**, que já traz foco preso, fechamento por Esc e
+  fundo inerte — um `role="dialog"` próprio exigiria reimplementar tudo isso.
+
+Dois defeitos encontrados ao exercitar a tela:
+
+- **a lista dizia "nenhuma ocorrência registrada ainda" em qualquer página além da última** —
+  falso, e enganoso: o recorte tinha 14 resultados, só não naquela página. São três estados
+  vazios distintos, e confundi-los engana quem abre um link compartilhado cujo recorte
+  encolheu. Agora a página além da última diz quantas existem e leva à primeira;
+- **as miniaturas voltavam `400`**: o Next 16 recusa otimizar imagem cujo host resolva para IP
+  privado, porque um otimizador que busca qualquer endereço vira porta de SSRF para a rede
+  interna. Como nesta etapa a API roda em `localhost`, a exceção foi ligada **apenas em
+  desenvolvimento** — em produção a API terá endereço público e a permissão deixa de ser
+  necessária. A miniatura saiu com 965 bytes contra 7,7 kB do arquivo íntegro (`RNF-OP-24`).
+
+**O `RF-OP-30` não fecha aqui**, ao contrário do que o plano previa: "oferecer apenas as ações
+compatíveis" pressupõe ações, e elas são a etapa O3. O que existe já é a metade que cabia
+agora — o aviso do `RF-OP-64`, dizendo o motivo de um agente não poder agir, aparece antes dos
+botões existirem. Decidir se o portal espelha a tabela de transições da API ou se a API passa
+a devolvê-la no detalhe fica para O3: espelhar duplica uma regra que já divergiu uma vez neste
+projeto.
+
+Uma limitação de contrato registrada: **o filtro por responsável só aparece para coordenador e
+administrador**, porque `GET /reports/assignable-agents` é restrito a esses perfis e não há
+outra rota que liste agentes. Para o agente comum o recorte equivalente é o atalho "Minhas
+ocorrências" (`RF-OP-20`).
+
+Verificado contra a API no ar, com os dados de demonstração: nenhum valor em inglês na tela;
+filtros, ordenação por prioridade e paginação conferidos linha a linha contra o banco; os três
+estados vazios; recorte inválido mantém os filtros à vista com a mensagem de recusa; a volta do
+detalhe reconstrói o recorte; id inexistente e id malformado dão `404`; o Leaflet **não**
+aparece em nenhum script do painel nem da lista; e um agente vê o aviso na ocorrência de outro
+e não o vê na sua.
+
+### 29 de setembro de 2026 — extensão do seed: fotos de demonstração
+
+- Sete fotos em quatro ocorrências, duas delas já em atendimento — o caso em que o agente de
+  fato abre a galeria.
+- As imagens são **geradas** (`prisma/demo-image.ts`, PNG com faixas de cor), e não binários
+  versionados: o envio confere o tipo pela assinatura do arquivo, então precisam ser imagens de
+  verdade; e serem sintéticas deixa evidente que o dado é de demonstração.
+
+**O seed não grava no disco.** Ele envia pelo `POST /reports/:id/attachments`, o mesmo endpoint
+que o Portal do Cidadão usará. Gravar direto em `UPLOAD_DIR` furaria por fora o limite da
+[decisão 07](arquitetura.md#armazenamento-de-anexos-decisão-07) — só `modules/attachments`
+conhece caminho de arquivo — sem aparecer em nenhuma busca por `fs` nos módulos. Em troca, as
+fotos de demonstração percorrem a mesma conferência de assinatura, tamanho e quantidade que as
+reais.
+
+Isso obrigou a criar cada ocorrência em três fases: recebida como o cidadão a deixa, depois as
+fotos — a API só as aceita em `RECEIVED` (`RF-API-69`) —, e só então a situação atual e o
+histórico. A API é exigida **apenas** para os anexos: sem ela, o seed avisa e segue, e um banco
+de demonstração sem fotos continua servindo.
+
 ## 3. O que está pronto, em detalhe
 
 ### 3.1 Infraestrutura e ambiente
@@ -393,7 +480,7 @@ o que elas mesmas criaram.
 | Aplicação | Versões | O que já roda |
 |---|---|---|
 | API | NestJS 12, Prisma 7.10, TypeScript 6, Vitest 4.1 | As 27 rotas do contrato, com prefixo `/api/v1`, CORS por `CORS_ORIGINS`, `ValidationPipe` com `whitelist` e `forbidNonWhitelisted`, e Swagger em `/api/docs` |
-| Portal de Operações | Next.js 16.3, React 19.2, Tailwind 4, Leaflet 1.9 | Login, sessão, navegação e metadados (etapa O1) |
+| Portal de Operações | Next.js 16.3, React 19.2, Tailwind 4, Leaflet 1.9 | Sessão e navegação (O1); lista e detalhe da ocorrência (O2) |
 | Portal do Cidadão | Next.js 16.3, React 19.2, Tailwind 4, Leaflet 1.9 | Página inicial do scaffold |
 
 Dependências de domínio da API já instaladas: `@nestjs/jwt`, `passport-jwt`, `bcrypt`,
@@ -416,10 +503,10 @@ dependência nova prevista em todo o plano é `@nestjs/throttler`.
 
 | Aplicação | Funcionais | Não funcionais | Prefixo |
 |---|---|---|---|
-| API | 70 | 51 | `RF-API` / `RNF-API` |
+| API | 71 | 51 | `RF-API` / `RNF-API` |
 | Portal de Operações | 65 | 56 | `RF-OP` / `RNF-OP` |
 | Portal do Cidadão | 42 | 48 | `RF-CID` / `RNF-CID` |
-| **Total** | **177** | **155** | — |
+| **Total** | **178** | **155** | — |
 
 Cada requisito tem identificador permanente e prioridade; cada RNF tem ainda a forma de
 verificação. Cada documento de RF registra também o escopo negativo da versão.
@@ -451,35 +538,39 @@ A documentação é verificada por conferências que qualquer alteração futura
 - todo código de resposta citado em requisito existe na tabela do contrato;
 - toda situação do ciclo de vida é alcançável pela tabela de transições;
 - toda decisão citada existe no registro da arquitetura;
-- os 332 requisitos estão cobertos por alguma etapa do plano.
+- os 333 requisitos estão cobertos por alguma etapa do plano.
 
 ## 4. O que ainda não existe
 
 Registrado explicitamente, para que a ausência não seja confundida com esquecimento:
 
-- **nenhuma tela de trabalho no Portal de Operações** — `/`, `/ocorrencias`, `/mapa` e
-  `/agentes` existem como destinos da navegação, mas nenhuma lista, formulário ou mapa foi
-  construído; elas são as etapas O2 a O6;
-- **nenhum componente de mapa** em nenhum dos portais — o Leaflet está instalado e não é
-  importado em lugar nenhum;
-- **nenhuma tela** no Portal do Cidadão além da página inicial gerada pelo `create-next-app`,
-  e nenhum cliente HTTP nele;
-- **nenhum teste automatizado nos portais** — a verificação de O1 foi feita contra a
+- **nenhuma ação de atendimento** — assumir e concluir a triagem, atribuir responsável,
+  alterar a situação e registrar andamento são a etapa O3; o detalhe já mostra tudo, mas não
+  altera nada;
+- **nenhum painel e nenhum mapa de conjunto** — `/` e `/mapa` seguem como destinos da
+  navegação, sem conteúdo próprio (etapas O4 e O5); `/agentes` idem (O6);
+- **nenhuma tela no Portal do Cidadão**, e nenhum componente `<LocationPicker>`;
+- **nenhum teste automatizado nos portais** — a verificação de O1 e O2 foi feita contra a
   aplicação no ar, e o plano não prevê suíte de testes de interface;
-- **nenhum anexo nos dados de demonstração** — as ocorrências têm histórico e coordenadas, mas
-  nenhuma foto; `RF-OP-27` (ampliação dos anexos) precisará de um envio manual, ou de uma
-  extensão do seed, quando O2 chegar lá.
+- **o `RF-OP-30` só pela metade** — o aviso de por que um agente não pode agir já aparece, mas
+  as ações em si são a etapa O3.
 
 ## 5. Próximo passo
 
-**Etapa O2 — Lista e detalhe da ocorrência**, do
-[plano de implementação](plano-de-implementacao.md#o2-lista-e-detalhe-da-ocorrência): a tabela
-semântica com os filtros combináveis refletidos na URL, a busca com *debounce*, a paginação e
-a tela de detalhe com anexos, mapa do ponto, dados do cidadão e histórico.
+**Etapa O3 — Atendimento**, do
+[plano de implementação](plano-de-implementacao.md#o3-atendimento): a triagem em duas etapas, a
+atribuição de responsável, a mudança de situação oferecendo só as transições válidas, o
+registro de andamento com escolha de visibilidade e a confirmação nas ações difíceis de
+reverter.
 
-As dependências de O2 — B5 e O1 — estão concluídas. **O6 e C1 também já estão liberadas** e
-podem correr em paralelo; pelo [plano](plano-de-implementacao.md#2-ordem-adotada-e-por-quê), o
-Portal de Operações vem primeiro.
+A primeira decisão de O3 é a que ficou em aberto: **o portal espelha a tabela de transições da
+API, ou a API passa a devolvê-la no detalhe da ocorrência?** Espelhar duplica uma regra que já
+divergiu uma vez neste projeto — foi a verificação cruzada que descobriu a situação `TRIAGE`
+inalcançável.
+
+**O4, O5, O6 e C1 também já estão liberadas** e podem correr em paralelo; pelo
+[plano](plano-de-implementacao.md#2-ordem-adotada-e-por-quê), o Portal de Operações vem
+primeiro.
 
 ## 6. Como manter este documento
 

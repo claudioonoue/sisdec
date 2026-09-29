@@ -188,7 +188,7 @@ O `passwordHash` nunca é devolvido por nenhuma rota da API.
 
 | Método | Rota | Perfis | Descrição |
 |---|---|---|---|
-| `GET` | `/reports` | todos | Lista com filtros: `status`, `type`, `category`, `priority`, `district`, `assignedToId`, `from`, `to`, `search` |
+| `GET` | `/reports` | todos | Lista com filtros: `status`, `type`, `category`, `priority`, `district`, `assignedToId`, `from`, `to`, `search`; ordenação por `sort` e `order` |
 | `GET` | `/reports/:id` | todos | Detalhe completo, com anexos e histórico |
 | `GET` | `/reports/map` | todos | Ocorrências com coordenadas, em formato enxuto e **sem paginação**, para plotagem no mapa |
 | `GET` | `/reports/export` | coordenador, admin | Exporta em **CSV** a lista filtrada, sem paginação |
@@ -198,6 +198,26 @@ O `passwordHash` nunca é devolvido por nenhuma rota da API.
 | `PATCH` | `/reports/:id/status` | responsável, coordenador, admin | Altera a situação e registra o andamento |
 | `POST` | `/reports/:id/updates` | todos | Adiciona uma observação ao histórico |
 | `GET` | `/reports/assignable-agents` | coordenador, admin | Agentes ativos (`id` e `name`) disponíveis para atribuição |
+
+### Ordenação de `GET /reports`
+
+```
+?sort=createdAt|priority   padrão: createdAt
+?order=asc|desc            padrão: desc
+```
+
+A ordenação é do **banco**, não do portal: a listagem é paginada, e ordenar a página corrente
+reordenaria vinte linhas em vez da lista (`RNF-OP-20`). Os campos aceitos são uma lista
+branca — os dois que o `RF-OP-19` pede, e que `RNF-API-04` mantém indexados; qualquer outro
+valor responde `400`.
+
+Duas garantias do resultado:
+
+- as ocorrências **sem prioridade** ficam por último nas duas direções. Prioridade nula é
+  ausência de classificação — a ocorrência ainda não passou pela triagem —, e não a prioridade
+  mais baixa;
+- a ordem fecha sempre por um campo único, de modo que empates não mudem de posição entre uma
+  consulta e outra, o que faria a paginação repetir e pular registros.
 
 ### Exemplo — `GET /reports/map`
 

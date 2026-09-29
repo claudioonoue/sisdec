@@ -109,6 +109,6 @@ A API precisa estar no ar, e é preciso haver ao menos um agente cadastrado —
 
 ## 9. Situação
 
-🚧 Etapa **O1** concluída: sessão, navegação e carga de metadados. As telas de ocorrências,
-painel, mapa e agentes são as etapas O2 a O6 do
+🚧 Etapas **O1** (sessão, navegação e metadados) e **O2** (lista e detalhe da ocorrência)
+concluídas. Atendimento, painel, mapa e agentes são as etapas O3 a O6 do
 [plano de implementação](../plano-de-implementacao.md).

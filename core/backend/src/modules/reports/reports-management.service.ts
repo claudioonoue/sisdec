@@ -18,6 +18,7 @@ import type {
 } from './dto/manage-report.dto.js';
 import type { ListReportsQueryDto } from './dto/list-reports.dto.js';
 import type { MapReportsQueryDto, MapResponseDto } from './dto/map-reports.dto.js';
+import { buildReportOrderBy } from './report-sort.js';
 import { type TransitionOwner, findTransition, nextStatusesFrom } from './report-transitions.js';
 
 /** Campos da listagem — o suficiente para a tabela do Portal de Operações. */
@@ -67,7 +68,7 @@ export class ReportsManagementService {
       this.prisma.report.findMany({
         where,
         select: LIST_SELECT,
-        orderBy: { createdAt: 'desc' },
+        orderBy: buildReportOrderBy(query.sort, query.order),
         skip: query.skip,
         take: query.take,
       }),

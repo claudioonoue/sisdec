@@ -14,6 +14,7 @@ import {
   protocolPrefixForYear,
   sequenceOf,
 } from '../src/modules/reports/protocol-number.ts';
+import { type Rgb, bandedPng } from './demo-image.ts';
 
 /**
  * Dados de **demonstração** para o trabalho de desenvolvimento.
@@ -39,6 +40,10 @@ import {
  */
 
 const PASSWORD = process.env.SEED_DEMO_PASSWORD ?? 'sisdec-demo';
+
+/** Endereço da API, usado apenas para enviar as fotos dos anexos. */
+const API_URL =
+  process.env.SEED_DEMO_API_URL ?? `http://localhost:${process.env.PORT ?? 3000}/api/v1`;
 
 interface DemoAgent {
   key: string;
@@ -93,6 +98,11 @@ interface DemoUpdate {
   visibleToCitizen: boolean;
 }
 
+interface DemoAttachment {
+  fileName: string;
+  color: Rgb;
+}
+
 interface DemoReport {
   category: ReportCategory;
   type: ReportType;
@@ -112,6 +122,8 @@ interface DemoReport {
   /** Horas decorridas até a conclusão, nas ocorrências resolvidas. */
   resolvedAfterHours?: number;
   updates: readonly DemoUpdate[];
+  /** Fotos enviadas pelo cidadão, pelo mesmo endpoint que o portal público usa. */
+  attachments?: readonly DemoAttachment[];
 }
 
 /**
@@ -133,6 +145,10 @@ const REPORTS: readonly DemoReport[] = [
     daysAgo: 1,
     status: ReportStatus.RECEIVED,
     updates: [],
+    attachments: [
+      { fileName: 'rua-alagada.png', color: { r: 30, g: 64, b: 124 } },
+      { fileName: 'calcada.png', color: { r: 21, g: 94, b: 117 } },
+    ],
   },
   {
     category: ReportCategory.RISK_ALERT,
@@ -146,6 +162,7 @@ const REPORTS: readonly DemoReport[] = [
     daysAgo: 2,
     status: ReportStatus.RECEIVED,
     updates: [],
+    attachments: [{ fileName: 'arvore-inclinada.png', color: { r: 77, g: 60, b: 20 } }],
   },
   {
     category: ReportCategory.COMPLAINT,
@@ -224,6 +241,13 @@ const REPORTS: readonly DemoReport[] = [
     status: ReportStatus.IN_PROGRESS,
     priority: Priority.HIGH,
     assignedTo: 'ana',
+    // Fotos em ocorrência já em atendimento: é o caso que o agente encontra no
+    // dia a dia, e o que faz a galeria do detalhe valer a pena.
+    attachments: [
+      { fileName: 'fumaca-terreno.png', color: { r: 124, g: 45, b: 18 } },
+      { fileName: 'frente-do-fogo.png', color: { r: 146, g: 64, b: 14 } },
+      { fileName: 'casas-proximas.png', color: { r: 63, g: 98, b: 18 } },
+    ],
     updates: [
       {
         hoursAfter: 2,
@@ -268,6 +292,7 @@ const REPORTS: readonly DemoReport[] = [
     status: ReportStatus.IN_PROGRESS,
     priority: Priority.CRITICAL,
     assignedTo: 'bruno',
+    attachments: [{ fileName: 'rachadura-muro.png', color: { r: 109, g: 40, b: 217 } }],
     updates: [
       {
         hoursAfter: 1,
@@ -544,6 +569,8 @@ async function main(): Promise<void> {
     // cai no ano anterior. Uma sequência por ano mantém cada protocolo válido.
     const sequences = new Map<number, number>();
     const now = Date.now();
+    const uploader = await resolveUploader();
+    let uploaded = 0;
 
     for (const report of REPORTS) {
       const createdAt = new Date(now - report.daysAgo * DAY);
@@ -551,27 +578,20 @@ async function main(): Promise<void> {
       const sequence = sequences.get(year) ?? (await nextSequence(prisma, year));
       const assignedToId = report.assignedTo ? agentIds.get(report.assignedTo) : undefined;
 
-      await prisma.report.create({
+      // Fase 1 — a ocorrência como o cidadão a deixa: recebida, sem prioridade,
+      // sem responsável. É o estado em que a API aceita anexo (RF-API-69).
+      const created = await prisma.report.create({
         data: {
           protocolNumber: formatProtocolNumber(year, sequence),
           category: report.category,
           type: report.type,
-          status: report.status,
-          priority: report.priority ?? null,
+          status: ReportStatus.RECEIVED,
           description: report.description,
           address: report.address,
           district: report.district,
           latitude: report.latitude ?? null,
           longitude: report.longitude ?? null,
-          // `connect` e não o `assignedToId` cru: a presença de escritas
-          // aninhadas (`citizen`, `updates`) leva o Prisma ao input que trabalha
-          // por relação, onde a chave estrangeira solta não é aceita.
-          assignedTo: assignedToId ? { connect: { id: assignedToId } } : undefined,
           createdAt,
-          resolvedAt:
-            report.resolvedAfterHours === undefined
-              ? null
-              : new Date(createdAt.getTime() + report.resolvedAfterHours * HOUR),
           citizen: report.citizen
             ? {
                 create: {
@@ -582,6 +602,29 @@ async function main(): Promise<void> {
                 },
               }
             : undefined,
+        },
+        select: { id: true },
+      });
+
+      // Fase 2 — as fotos, pelo mesmo endpoint que o Portal do Cidadão usa.
+      if (report.attachments?.length && uploader) {
+        uploaded += await uploader(created.id, report.attachments);
+      }
+
+      // Fase 3 — o histórico e o estado em que a ocorrência está hoje.
+      await prisma.report.update({
+        where: { id: created.id },
+        data: {
+          status: report.status,
+          priority: report.priority ?? null,
+          // `connect` e não o `assignedToId` cru: a presença de escritas
+          // aninhadas leva o Prisma ao input que trabalha por relação, onde a
+          // chave estrangeira solta não é aceita.
+          assignedTo: assignedToId ? { connect: { id: assignedToId } } : undefined,
+          resolvedAt:
+            report.resolvedAfterHours === undefined
+              ? null
+              : new Date(createdAt.getTime() + report.resolvedAfterHours * HOUR),
           updates: {
             create: report.updates.map((update) => ({
               agentId: requireAgent(agentIds, update.agent),
@@ -599,9 +642,61 @@ async function main(): Promise<void> {
     }
 
     console.log(`Ocorrências de demonstração: ${REPORTS.length}`);
+    console.log(
+      uploader
+        ? `Fotos anexadas: ${uploaded}`
+        : `Fotos anexadas: nenhuma — a API não respondeu em ${API_URL}.\n` +
+            '  Suba a API e rode de novo (com SEED_DEMO_FORCE=1) para ter anexos na demonstração.',
+    );
   } finally {
     await prisma.$disconnect();
   }
+}
+
+/**
+ * Envia as fotos, ou `null` quando a API não está no ar.
+ *
+ * As fotos **não** são gravadas direto no disco. Só `modules/attachments` conhece
+ * caminho de arquivo — é o limite que sustenta a troca do armazenamento por S3
+ * ([decisão 07](../../../docs/arquitetura.md#armazenamento-de-anexos-decisão-07)) —,
+ * e um seed que escrevesse em `UPLOAD_DIR` furaria esse limite por fora, sem
+ * aparecer em nenhuma busca por `fs` nos módulos.
+ *
+ * Passar pelo endpoint tem outra vantagem: as fotos de demonstração percorrem a
+ * mesma conferência de assinatura, de tamanho e de quantidade que as de verdade.
+ * Se o seed passa, o caminho de envio funciona.
+ *
+ * A API ser exigida só para os anexos é deliberado: o resto do seed continua
+ * rodando sem ela, e um banco de demonstração sem fotos ainda serve.
+ */
+async function resolveUploader() {
+  try {
+    const health = await fetch(`${API_URL}/health`, { signal: AbortSignal.timeout(2000) });
+    if (!health.ok) return null;
+  } catch {
+    return null;
+  }
+
+  return async (reportId: string, attachments: readonly DemoAttachment[]): Promise<number> => {
+    const form = new FormData();
+    for (const attachment of attachments) {
+      const png = bandedPng(640, 480, attachment.color);
+      form.append('files', new Blob([png], { type: 'image/png' }), attachment.fileName);
+    }
+
+    const response = await fetch(`${API_URL}/reports/${reportId}/attachments`, {
+      method: 'POST',
+      body: form,
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `A API recusou as fotos da ocorrência ${reportId}: ${response.status} ${await response.text()}`,
+      );
+    }
+
+    return attachments.length;
+  };
 }
 
 /**
