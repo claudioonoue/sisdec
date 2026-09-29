@@ -6,7 +6,7 @@ O que já foi construído no SISDEC, o que ainda não existe e qual é o próxim
 > [plano de implementação](plano-de-implementacao.md). Registra **estado**, não intenção —
 > um item só é marcado como pronto quando está verificado e commitado.
 
-Última atualização: **29 de setembro de 2026** — etapas B0 a B4 concluídas.
+Última atualização: **29 de setembro de 2026** — etapas B0 a B5 concluídas.
 
 ---
 
@@ -26,10 +26,11 @@ O que já foi construído no SISDEC, o que ainda não existe e qual é o próxim
 | Autenticação e agentes (etapa B2) | ✅ Concluída e verificada |
 | Registro e consulta por protocolo (etapa B3) | ✅ Concluída e verificada |
 | Anexos (etapa B4) | ✅ Concluída e verificada |
-| **Gestão de ocorrências** | ⬜ Triagem, atribuição e histórico ainda não existem — 14 das 25 rotas no ar |
+| Gestão de ocorrências (etapa B5) | ✅ Concluída e verificada |
+| **Painel e mapa** | ⬜ Indicadores, mapa e exportação ainda não existem — 21 das 25 rotas no ar |
 | **Telas dos portais** | ⬜ Apenas a página inicial do scaffold |
 
-Em uma frase: **o fluxo do cidadão está completo, com fotos; falta o atendimento pelos agentes.**
+Em uma frase: **o ciclo de vida da ocorrência funciona ponta a ponta; faltam os dados consolidados do painel.**
 
 ## 2. Linha do tempo
 
@@ -200,11 +201,41 @@ na leitura, o que contraria o `RNF-API-06`, e recebia o `Express.Multer.File`, o
 a interface ao framework HTTP — justamente o contrário do que ela existe para permitir. O
 documento foi alinhado à implementação.
 
+### 29 de setembro de 2026 — etapa B5: gestão de ocorrências
+
+Conforme o [plano](plano-de-implementacao.md#b5-gestão-de-ocorrências). A maior etapa da API:
+o ciclo de vida completo, com histórico e autorização.
+
+- `GET /reports` com os nove filtros combináveis e paginação, e `GET /reports/:id` com dados do
+  cidadão, anexos e histórico integral.
+- Triagem em duas etapas: `PATCH /reports/:id/triage/start` e `PATCH /reports/:id/triage` com
+  `outcome: ACCEPT | REJECT`.
+- `GET /reports/assignable-agents` e `PATCH /reports/:id/assign`, recusando agente inativo.
+- `PATCH /reports/:id/status` e `POST /reports/:id/updates`.
+- 11 testes unitários e 28 e2e novos.
+
+Três decisões de projeto:
+
+- **A tabela de transições virou dado, não código espalhado.** Cada aresta declara o endpoint
+  responsável, os perfis que podem executá-la e se exige comentário. Há teste conferindo que
+  toda situação do enum é alcançável e que a improcedência tem exatamente um caminho — a falha
+  que a verificação cruzada encontrou na documentação não pode voltar sem quebrar o teste.
+- **Um único método aplica toda mudança de situação** (`RF-API-42`). É onde a transição é
+  conferida, a autorização é aplicada, o `ReportUpdate` é gravado na mesma transação e o
+  `resolvedAt` é preenchido — e onde o envio de aviso ao cidadão entrará numa versão futura.
+- **`GET /reports/assignable-agents` é declarado antes de `GET /reports/:id`.** O Express casa
+  as rotas na ordem de registro; declarada depois, `assignable-agents` cairia no parâmetro de
+  id e viraria um `400` de UUID.
+
+A atribuição de responsável também grava andamento, para que a troca seja rastreável — o
+requisito pedia rastreabilidade das mudanças de situação, e trocar o responsável sem deixar
+registro deixaria um buraco no histórico.
+
 ### Em andamento — ainda não commitado
 
 - [Plano de implementação](plano-de-implementacao.md), com 20 etapas.
 - Este registro de progresso.
-- Tudo o que a etapa B4 produziu.
+- Tudo o que a etapa B5 produziu.
 
 ## 3. O que está pronto, em detalhe
 
@@ -294,13 +325,12 @@ Registrado explicitamente, para que a ausência não seja confundida com esqueci
 
 ## 5. Próximo passo
 
-**Etapa B5 — Gestão de ocorrências**, do
-[plano de implementação](plano-de-implementacao.md#b5-gestão-de-ocorrências): a listagem com
-filtros, o detalhe completo, a triagem em duas etapas, a atribuição de responsável, a mudança
-de situação com as transições válidas e o histórico de andamentos.
+**Etapa B6 — Mapa, exportação e painel**, do
+[plano de implementação](plano-de-implementacao.md#b6-mapa-exportação-e-painel):
+`GET /reports/map` sem paginação, `GET /reports/export` em CSV e os três endpoints do painel,
+calculados por agregação no banco.
 
-É a maior etapa da API e o próximo trecho do caminho crítico. As etapas O1 e C1 dos portais já
-estão destravadas e podem correr em paralelo.
+É o último trecho do caminho crítico antes do fechamento da API em B7.
 
 ## 6. Como manter este documento
 
