@@ -98,6 +98,7 @@ executados dentro da respectiva pasta.
 | 12 | Enumerações, rótulos em pt-BR e limites de upload servidos pela API em `GET /metadata` (público) e `GET /metadata/internal` (autenticado); os portais **não** mantêm listas nem mapas de tradução fixos | Definida |
 | 13 | Rotas dedicadas **sem paginação** para o mapa (`GET /reports/map`, teto de 500) e para a exportação (`GET /reports/export`), em vez de varrer páginas de `GET /reports` | Definida |
 | 14 | Agente de perfil `AGENT` altera a situação **apenas** da ocorrência que lhe foi atribuída; anexos do cidadão são aceitos somente enquanto a ocorrência está em `RECEIVED` | Definida |
+| 15 | O token JWT do Portal de Operações fica em **cookie `httpOnly`** e o portal fala com a API **pelo servidor do Next** — nunca pelo navegador ([detalhe](#sessão-do-portal-de-operações-decisão-15)) | Definida |
 
 ---
 
@@ -154,7 +155,37 @@ interface StorageService {
 
 ---
 
-## 7. Requisitos funcionais e não funcionais
+## 7. Sessão do Portal de Operações (decisão 15)
+
+O [RNF-OP-12](frontend-operations/requisitos-nao-funcionais.md) pede que o token não fique
+em `localStorage` **havendo alternativa mais segura**, e que a escolha esteja registrada no
+código. A alternativa adotada é o cookie `httpOnly`, e ela tem uma consequência que decide a
+arquitetura do portal inteiro: **um cookie `httpOnly` não pode ser lido pelo JavaScript da
+página**, então não é o navegador que monta o cabeçalho `Authorization`.
+
+Daí a forma do portal:
+
+- o token é gravado pelo servidor do Next, em cookie `httpOnly` + `SameSite=Lax`;
+- as telas são *Server Components* e as operações de escrita são *Server Actions*: toda
+  chamada à API parte do servidor, que lê o cookie e monta o cabeçalho;
+- `lib/api-client.ts` é o **único** ponto que chama `fetch` contra a API (`RNF-OP-44`), e
+  como ele importa a leitura do cookie, nenhum componente de navegador consegue importá-lo
+  — a fronteira é verificada pelo próprio empacotador, não por disciplina;
+- `src/proxy.ts` (o antigo `middleware`) barra as rotas sem cookie antes de qualquer
+  renderização, e a **validade** do token é conferida pela API a cada requisição, em
+  `GET /auth/me`. Desativar um agente na API derruba a sessão dele no portal na hora, sem
+  esperar a expiração do JWT.
+
+O Portal do Cidadão não é afetado: ele não autentica ninguém.
+
+> Consequência a ter em vista nas etapas seguintes: um componente interativo (filtro,
+> formulário de triagem, legenda do mapa) não pode chamar a API diretamente. Ele aciona uma
+> Server Action ou muda a URL, e o servidor refaz a busca. É também o que sustenta o
+> `RNF-OP-20` — a paginação e a filtragem ficam na API, não no navegador.
+
+---
+
+## 8. Requisitos funcionais e não funcionais
 
 Os requisitos abaixo valem para o sistema como um todo. O detalhamento — com identificador,
 prioridade e forma de verificação — está nos documentos de cada aplicação:

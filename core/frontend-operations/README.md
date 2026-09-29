@@ -31,10 +31,24 @@ npm run dev                    # http://localhost:3001
 
 A porta já está fixada nos scripts `dev` e `start` — não é preciso passar `-p`.
 
-## Ponto de atenção
+> É preciso haver ao menos um agente cadastrado para entrar. Em `core/backend`,
+> `npx prisma db seed` cria o administrador do primeiro acesso.
 
-O Leaflet manipula o DOM e não funciona na renderização do servidor. Os componentes de mapa
-devem ser importados com `dynamic(..., { ssr: false })` e ficar isolados em
+## Pontos de atenção
+
+**A sessão vive no servidor.** O token JWT fica em cookie `httpOnly` e todas as chamadas à
+API partem do servidor do Next — as telas são Server Components e as operações são Server
+Actions (ver [decisão 15](../../docs/arquitetura.md#7-sessão-do-portal-de-operações-decisão-15)).
+Um componente `'use client'` não pode importar `lib/api-client.ts` nem `lib/metadata.ts`:
+eles leem o cookie, e o empacotador recusa o build. Para traduzir enumerações no navegador,
+use `lib/enum-label.ts` ou o `useMetadata()` de `features/metadata/`.
+
+**Nada de enumeração fixa no código.** Os valores em inglês (`RECEIVED`, `HIGH`, …) só podem
+aparecer em `src/types/`; os rótulos em pt-BR vêm de `GET /metadata` e `GET /metadata/internal`
+(`RNF-OP-45`).
+
+**O Leaflet** manipula o DOM e não funciona na renderização do servidor. Os componentes de
+mapa devem ser importados com `dynamic(..., { ssr: false })` e ficar isolados em
 `src/components/map/`, de modo que nenhuma tela importe `leaflet` diretamente
 (ver [decisão 08](../../docs/arquitetura.md#mapas-decisão-08)).
 

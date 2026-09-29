@@ -6,7 +6,8 @@ O que já foi construído no SISDEC, o que ainda não existe e qual é o próxim
 > [plano de implementação](plano-de-implementacao.md). Registra **estado**, não intenção —
 > um item só é marcado como pronto quando está verificado e commitado.
 
-Última atualização: **29 de setembro de 2026** — **API concluída** (etapas B0 a B7).
+Última atualização: **29 de setembro de 2026** — API concluída (B0 a B7) e **etapa O1**, a
+fundação do Portal de Operações.
 
 ---
 
@@ -16,7 +17,7 @@ O que já foi construído no SISDEC, o que ainda não existe e qual é o próxim
 |---|---|
 | Documentação do projeto | ✅ Completa para a etapa atual — 15 documentos |
 | Requisitos (RF e RNF) | ✅ 332 requisitos, nas três aplicações |
-| Contrato da API | ✅ 25 rotas especificadas e conferidas contra os requisitos |
+| Contrato da API — especificação | ✅ 27 rotas especificadas e conferidas contra os requisitos |
 | Plano de implementação | ✅ 20 etapas, cobrindo os 332 requisitos |
 | Ambiente de desenvolvimento | ✅ PostgreSQL em Docker, `.env` das três aplicações |
 | Scaffold das três aplicações | ✅ Sobem e respondem |
@@ -29,12 +30,13 @@ O que já foi construído no SISDEC, o que ainda não existe e qual é o próxim
 | Gestão de ocorrências (etapa B5) | ✅ Concluída e verificada |
 | Mapa, exportação e painel (etapa B6) | ✅ Concluída e verificada |
 | Fechamento da API (etapa B7) | ✅ Concluída e verificada |
-| Contrato da API | ✅ **As 27 rotas implementadas**, conferidas contra `api.md` |
-| **Portal de Operações** | ⬜ Apenas a página inicial do scaffold |
+| Contrato da API — implementação | ✅ **As 27 rotas implementadas**, conferidas contra `api.md` |
+| Fundação e sessão do Portal de Operações (etapa O1) | ✅ Concluída e verificada |
+| **Telas do Portal de Operações** | ⬜ Ocorrências, painel, mapa e agentes — etapas O2 a O6 |
 | **Portal do Cidadão** | ⬜ Apenas a página inicial do scaffold |
-| **Telas dos portais** | ⬜ Apenas a página inicial do scaffold |
 
-Em uma frase: **a API está pronta — as 27 rotas, 247 testes; falta construir os dois portais.**
+Em uma frase: **a API está pronta — as 27 rotas, 247 testes; o Portal de Operações já
+autentica e navega, e faltam as suas telas e o Portal do Cidadão inteiro.**
 
 ## 2. Linha do tempo
 
@@ -292,11 +294,59 @@ versionado, ausência de SQL cru inseguro, nenhuma rotina que altere ou remova `
 prefixo `/api/v1` obrigatório, `500` sem vazar detalhe interno e datas em ISO 8601 UTC. Os
 tempos de resposta ficaram entre 1 ms e 19 ms, bem dentro dos tetos de 500 ms e 1 s.
 
-### Em andamento — ainda não commitado
+### 29 de setembro de 2026 — etapa O1: fundação e sessão do Portal de Operações
 
-- [Plano de implementação](plano-de-implementacao.md), com 20 etapas.
-- Este registro de progresso.
-- Tudo o que a etapa B7 produziu.
+Conforme o [plano](plano-de-implementacao.md#o1-fundação-e-sessão). Primeira etapa fora da
+API: o portal já autentica, navega e fala com a API ponta a ponta.
+
+- Cliente HTTP único em `lib/api-client.ts`, com tempo limite de 10 s, envio do token e
+  tradução de toda falha para mensagem em pt-BR (`lib/api-error.ts`).
+- Tipos da API em `types/`, um arquivo por assunto — e o **único** lugar do portal onde os
+  valores das enumerações aparecem.
+- Carga de `GET /metadata` e `GET /metadata/internal` junto da sessão, entregue às telas de
+  servidor e, por um provider, aos componentes de navegador.
+- `/login` com guarda de rotas em `src/proxy.ts`, `GET /auth/me` a cada requisição,
+  encerramento explícito por `/sair` e retorno à tela pretendida após expiração.
+- Moldura com navegação permanente, perfil do agente em pt-BR e o acesso a `/agentes`
+  restrito ao administrador; `/`, `/ocorrencias`, `/mapa` e `/agentes` existem como destinos,
+  declarando qual etapa as constrói.
+- `tsc --noEmit`, lint e `next build` limpos.
+
+**A decisão que moldou o portal inteiro foi a do `RNF-OP-12`**, registrada como
+[decisão 15](arquitetura.md#7-sessão-do-portal-de-operações-decisão-15): o token em cookie
+`httpOnly` **não pode ser lido pelo JavaScript da página**, então não é o navegador que monta
+o cabeçalho `Authorization`. As telas passaram a ser Server Components e as operações, Server
+Actions. O ganho não é só o token fora do alcance de script: como o cliente HTTP importa a
+leitura do cookie, **o empacotador recusa** qualquer componente de navegador que tente
+importá-lo — a fronteira do `RNF-OP-44` é verificada, não confiada à disciplina. Foi
+exatamente assim que ela se fez valer: o provider de metadados importava o tradutor de
+rótulos de `lib/metadata.ts` e arrastava o cliente HTTP para o pacote do navegador. O build
+quebrou e apontou a cadeia inteira; o tradutor virou módulo próprio, sem importação de
+servidor.
+
+**Um defeito que o build não pega.** Um arquivo `'use server'` só pode exportar funções
+assíncronas — o valor inicial do estado do formulário, exportado de `actions.ts`, era
+registrado como se fosse uma segunda ação de servidor. `tsc`, lint e `next build` passaram
+limpos; o envio do formulário respondia `500`. Só apareceu ao submeter o login de verdade.
+O estado foi para `features/auth/sign-in-state.ts`.
+
+Duas outras decisões:
+
+- **A moldura autenticada vive no layout raiz**, e não em um grupo de rotas, para que exista
+  *uma* decisão sobre quando a navegação aparece: há sessão, ou não há. O `/login` cai no
+  mesmo layout e simplesmente não recebe a moldura.
+- **O portal é somente claro.** Manter um tema escuro dobraria a superfície a conferir em
+  contraste — inclusive nas cores de situação e prioridade que O2 acrescenta — sem servir ao
+  contexto de uso descrito nos RNF: estação de trabalho interna, em ambiente iluminado.
+
+A verificação foi feita contra a API no ar, com o portal respondendo: rota protegida sem
+sessão desvia para `/login` **antes de renderizar** e sem nenhum dado no corpo; o token não
+aparece no HTML entregue; `/login` com sessão desvia para o painel; sair apaga o cookie;
+token inválido leva a `/sair?motivo=expirada` e volta ao login com o aviso e o destino
+guardados; coordenador recebe `404` em `/agentes` e não vê o item na navegação; e o login
+funciona **sem JavaScript**, com a senha errada devolvendo mensagem genérica e preservando o
+e-mail digitado. Com a API desligada, as três telas mostram a mensagem de indisponibilidade —
+nenhuma em branco, nenhuma técnica.
 
 ## 3. O que está pronto, em detalhe
 
@@ -313,8 +363,8 @@ tempos de resposta ficaram entre 1 ms e 19 ms, bem dentro dos tetos de 500 ms e 
 
 | Aplicação | Versões | O que já roda |
 |---|---|---|
-| API | NestJS 12, Prisma 7.10, TypeScript 6, Vitest 4.1 | Sobe com prefixo `/api/v1`, CORS por `CORS_ORIGINS`, `ValidationPipe` com `whitelist` e `forbidNonWhitelisted`, e Swagger em `/api/docs` |
-| Portal de Operações | Next.js 16.3, React 19.2, Tailwind 4, Leaflet 1.9 | Página inicial do scaffold |
+| API | NestJS 12, Prisma 7.10, TypeScript 6, Vitest 4.1 | As 27 rotas do contrato, com prefixo `/api/v1`, CORS por `CORS_ORIGINS`, `ValidationPipe` com `whitelist` e `forbidNonWhitelisted`, e Swagger em `/api/docs` |
+| Portal de Operações | Next.js 16.3, React 19.2, Tailwind 4, Leaflet 1.9 | Login, sessão, navegação e metadados (etapa O1) |
 | Portal do Cidadão | Next.js 16.3, React 19.2, Tailwind 4, Leaflet 1.9 | Página inicial do scaffold |
 
 Dependências de domínio da API já instaladas: `@nestjs/jwt`, `passport-jwt`, `bcrypt`,
@@ -328,7 +378,7 @@ dependência nova prevista em todo o plano é `@nestjs/throttler`.
 | [arquitetura.md](arquitetura.md) | Visão geral, tecnologias, 14 decisões registradas e os três pontos de troca previstos |
 | [glossario.md](glossario.md) | 15 termos do domínio, com o nome correspondente no código |
 | [backend/modelo-de-dados.md](backend/modelo-de-dados.md) | 5 entidades, 5 enumerações, ciclo de vida com tabela de transições e 11 regras de negócio |
-| [backend/api.md](backend/api.md) | 25 rotas, com exemplos de requisição e resposta e 10 códigos de resposta |
+| [backend/api.md](backend/api.md) | 27 rotas, com exemplos de requisição e resposta e 10 códigos de resposta |
 | [plano-de-implementacao.md](plano-de-implementacao.md) | 20 etapas, dependências, caminho crítico e riscos |
 | 6 documentos de requisitos | Detalhados em 3.4 |
 | 3 `README.md` de aplicação + índice | Visão geral e execução de cada projeto |
@@ -368,7 +418,7 @@ A documentação é verificada por conferências que qualquer alteração futura
 
 - todo identificador de requisito é único e a numeração não tem lacunas;
 - todo link e toda âncora entre documentos resolvem;
-- as 25 rotas aparecem tanto no contrato quanto nos requisitos, nos dois sentidos;
+- as 27 rotas aparecem tanto no contrato quanto nos requisitos, nos dois sentidos;
 - todo código de resposta citado em requisito existe na tabela do contrato;
 - toda situação do ciclo de vida é alcançável pela tabela de transições;
 - toda decisão citada existe no registro da arquitetura;
@@ -378,22 +428,26 @@ A documentação é verificada por conferências que qualquer alteração futura
 
 Registrado explicitamente, para que a ausência não seja confundida com esquecimento:
 
-- **nenhum módulo de domínio na API** — `auth`, `agents`, `reports`, `report-updates`,
-  `attachments` e `dashboard` ainda não existem; das 25 rotas do contrato, só `GET /health`
-  está no ar;
-- **nenhuma tela** nos dois portais além da página inicial gerada pelo `create-next-app`;
-- **nenhum cliente HTTP** nos portais, nenhum tipo compartilhado com a API.
+- **nenhuma tela de trabalho no Portal de Operações** — `/`, `/ocorrencias`, `/mapa` e
+  `/agentes` existem como destinos da navegação, mas nenhuma lista, formulário ou mapa foi
+  construído; elas são as etapas O2 a O6;
+- **nenhum componente de mapa** em nenhum dos portais — o Leaflet está instalado e não é
+  importado em lugar nenhum;
+- **nenhuma tela** no Portal do Cidadão além da página inicial gerada pelo `create-next-app`,
+  e nenhum cliente HTTP nele;
+- **nenhum teste automatizado nos portais** — a verificação de O1 foi feita contra a
+  aplicação no ar, e o plano não prevê suíte de testes de interface.
 
 ## 5. Próximo passo
 
-**Etapa O1 — Fundação e sessão do Portal de Operações**, do
-[plano de implementação](plano-de-implementacao.md#o1-fundação-e-sessão): o cliente HTTP, os
-tipos da API, a carga dos metadados, a tela de login com guarda de rotas e o layout com
-navegação.
+**Etapa O2 — Lista e detalhe da ocorrência**, do
+[plano de implementação](plano-de-implementacao.md#o2-lista-e-detalhe-da-ocorrência): a tabela
+semântica com os filtros combináveis refletidos na URL, a busca com *debounce*, a paginação e
+a tela de detalhe com anexos, mapa do ponto, dados do cidadão e histórico.
 
-A API está pronta, então **O1 e C1 podem correr em qualquer ordem** — ou em paralelo. Pelo
-[plano](plano-de-implementacao.md#2-ordem-adotada-e-por-quê), o Portal de Operações vem
-primeiro, por exercitar o domínio inteiro.
+As dependências de O2 — B5 e O1 — estão concluídas. **O6 e C1 também já estão liberadas** e
+podem correr em paralelo; pelo [plano](plano-de-implementacao.md#2-ordem-adotada-e-por-quê), o
+Portal de Operações vem primeiro.
 
 ## 6. Como manter este documento
 

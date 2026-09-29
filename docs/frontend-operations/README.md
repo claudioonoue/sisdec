@@ -46,21 +46,24 @@ login ─> painel ─> lista filtrada ─> detalhe da ocorrência
                                           └─ concluir o atendimento
 ```
 
-## 4. Estrutura de pastas prevista
+## 4. Estrutura de pastas
 
 ```
 core/frontend-operations/
 ├── src/
+│   ├── proxy.ts              # Guarda de rotas (o antigo "middleware" do Next)
 │   ├── app/                  # Rotas (App Router)
 │   │   ├── login/
+│   │   ├── sair/             # Route handler: descarta o cookie de sessão
 │   │   ├── ocorrencias/
 │   │   ├── mapa/
 │   │   └── agentes/
 │   ├── components/           # Componentes de interface reutilizáveis
 │   │   └── map/              # <ReportMap> — único ponto que importa o Leaflet
-│   ├── features/             # Componentes e lógica por domínio (reports, agents, dashboard)
-│   ├── lib/                  # Cliente HTTP, autenticação e utilitários
-│   └── types/                # Tipos compartilhados com a API
+│   ├── features/             # Componentes e lógica por domínio (auth, metadata,
+│   │                         #   reports, agents, dashboard)
+│   ├── lib/                  # Cliente HTTP, sessão, metadados e utilitários
+│   └── types/                # Tipos da API — único lugar com os valores das enumerações
 └── public/
 ```
 
@@ -73,7 +76,19 @@ core/frontend-operations/
 > O Leaflet acessa o DOM e não funciona na renderização do servidor: o `<ReportMap>` deve
 > ser importado com `dynamic(..., { ssr: false })`. Ver [decisão 08](../arquitetura.md#mapas-decisão-08).
 
-## 6. Como executar (após o scaffold)
+## 6. Sessão e acesso à API
+
+O token JWT fica em **cookie `httpOnly`** e o portal fala com a API **pelo servidor do
+Next** — as telas são *Server Components* e as operações são *Server Actions*. Nenhuma
+chamada à API parte do navegador, e o token nunca chega ao JavaScript da página.
+Ver [decisão 15](../arquitetura.md#7-sessão-do-portal-de-operações-decisão-15).
+
+Consequência prática ao construir uma tela nova: um componente `'use client'` **não** pode
+importar `lib/api-client.ts` nem `lib/metadata.ts`, porque eles leem o cookie de sessão. Para
+traduzir um valor de enumeração no navegador, use `lib/enum-label.ts` ou o
+`useMetadata()` de `features/metadata/`.
+
+## 7. Como executar
 
 ```bash
 cd core/frontend-operations
@@ -82,13 +97,18 @@ cp .env.example .env.local
 npm run dev                   # http://localhost:3001 (porta já fixada no script)
 ```
 
-## 7. Documentos relacionados
+A API precisa estar no ar, e é preciso haver ao menos um agente cadastrado —
+`npx prisma db seed`, em `core/backend`, cria o administrador do primeiro acesso.
+
+## 8. Documentos relacionados
 
 - [Requisitos funcionais](requisitos-funcionais.md) — `RF-OP-nn`
 - [Requisitos não funcionais](requisitos-nao-funcionais.md) — `RNF-OP-nn`
 - [API REST](../backend/api.md)
 - [Arquitetura geral](../arquitetura.md)
 
-## 8. Situação
+## 9. Situação
 
-🚧 Pasta criada, aplicação ainda não gerada.
+🚧 Etapa **O1** concluída: sessão, navegação e carga de metadados. As telas de ocorrências,
+painel, mapa e agentes são as etapas O2 a O6 do
+[plano de implementação](../plano-de-implementacao.md).
