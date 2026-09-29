@@ -6,7 +6,7 @@ O que já foi construído no SISDEC, o que ainda não existe e qual é o próxim
 > [plano de implementação](plano-de-implementacao.md). Registra **estado**, não intenção —
 > um item só é marcado como pronto quando está verificado e commitado.
 
-Última atualização: **29 de setembro de 2026** — etapa B0 concluída.
+Última atualização: **29 de setembro de 2026** — etapas B0 e B1 concluídas.
 
 ---
 
@@ -22,10 +22,11 @@ O que já foi construído no SISDEC, o que ainda não existe e qual é o próxim
 | Scaffold das três aplicações | ✅ Sobem e respondem |
 | Modelo de dados no Prisma | ✅ 5 entidades, 5 enumerações e a primeira migração aplicada |
 | Fundação da API (etapa B0) | ✅ Concluída e verificada |
-| **Código de domínio da API** | ⬜ Nenhum módulo de negócio implementado |
+| Metadados públicos (etapa B1) | ✅ Concluída e verificada |
+| **Código de domínio da API** | ⬜ 3 das 25 rotas no ar; nenhum módulo de negócio |
 | **Telas dos portais** | ⬜ Apenas a página inicial do scaffold |
 
-Em uma frase: **a especificação está fechada e a implementação começou pela fundação da API.**
+Em uma frase: **a especificação está fechada e a API já serve os metadados que destravam o Portal do Cidadão.**
 
 ## 2. Linha do tempo
 
@@ -76,11 +77,30 @@ Duas coisas que a etapa revelou e que o plano não previa:
   exceções, o que quebraria `response.json()` nos portais. Resolvido com um *fallback*
   registrado depois de `app.init()`.
 
+### 29 de setembro de 2026 — etapa B1: metadados públicos
+
+Conforme o [plano](plano-de-implementacao.md#b1-metadados-públicos).
+
+- `GET /metadata` sem autenticação, com `reportTypes` (14, cada um com `urgent`),
+  `reportCategories` (4), `reportStatuses` (6) e o bloco `upload`.
+- `GET /report-types` como atalho, devolvendo exatamente `metadata.reportTypes` — há teste
+  e2e comparando as duas respostas.
+- `urgent` marcado nos cinco tipos de risco imediato à vida.
+- Limites de upload derivados da configuração efetiva: `maxSizeMb` vem de
+  `MAX_UPLOAD_SIZE_MB`, e `maxFiles`/`acceptedMimeTypes` de `common/upload.constants.ts`, que
+  o módulo `attachments` também usará em B4 — para a API não recusar arquivo que ela mesma
+  anunciou como aceitável.
+- Rótulos tipados como `Record<Enum, string>`: acrescentar um valor ao enum sem o rótulo
+  **não compila**. Verificado removendo um rótulo e confirmando que o build quebra — é essa
+  garantia que sustenta o `RNF-API-29`, já que os portais não mantêm mapa de tradução.
+- 10 testes unitários e 6 e2e novos; os rótulos conferem exatamente com os exemplos de
+  [api.md](backend/api.md), sem necessidade de alterar o contrato.
+
 ### Em andamento — ainda não commitado
 
 - [Plano de implementação](plano-de-implementacao.md), com 20 etapas.
 - Este registro de progresso.
-- Tudo o que a etapa B0 produziu.
+- Tudo o que a etapa B1 produziu.
 
 ## 3. O que está pronto, em detalhe
 
@@ -171,12 +191,12 @@ Registrado explicitamente, para que a ausência não seja confundida com esqueci
 
 ## 5. Próximo passo
 
-**Etapa B1 — Metadados públicos**, do
-[plano de implementação](plano-de-implementacao.md#b1-metadados-públicos): o módulo
-`metadata` com `GET /metadata` (tipos, categorias, situações e limites de upload) e
-`GET /report-types` como atalho — o que destrava a etapa C1 do Portal do Cidadão.
+**Etapa B2 — Autenticação, agentes e metadados internos**, do
+[plano de implementação](plano-de-implementacao.md#b2-autenticação-agentes-e-metadados-internos):
+`AgentsModule` com CRUD restrito ao admin e hash bcrypt, `AuthModule` com login JWT e guardas
+de perfil, `seed.ts` com o agente administrador e `GET /metadata/internal`.
 
-O caminho crítico segue em **B3 → B5 → B6**.
+Ela destrava a etapa O1 do Portal de Operações. O caminho crítico segue em **B3 → B5 → B6**.
 
 ## 6. Como manter este documento
 
