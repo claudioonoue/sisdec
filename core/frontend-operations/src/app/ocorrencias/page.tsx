@@ -34,7 +34,7 @@ export default async function ReportsPage({
 
   const [portalMetadata, assignableAgents, districts] = await Promise.all([
     getMetadata(),
-    getAssignableAgents(agent.role),
+    getAssignableAgents(),
     getDistricts(),
   ]);
 

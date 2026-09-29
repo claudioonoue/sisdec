@@ -199,11 +199,7 @@ export function ReportFiltersForm({
           </datalist>
         </div>
 
-        {/*
-          O responsável só aparece para quem pode obter a lista de agentes:
-          GET /reports/assignable-agents é restrito a coordenador e administrador.
-          Para o agente comum, o recorte equivalente é "Minhas ocorrências".
-        */}
+        {/* Disponível a todo perfil: a rota de agentes atribuíveis é leitura. */}
         {assignableAgents.length > 0 ? (
           <div>
             <label htmlFor="responsavel" className={LABEL}>

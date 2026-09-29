@@ -197,7 +197,7 @@ O `passwordHash` nunca é devolvido por nenhuma rota da API.
 | `PATCH` | `/reports/:id/assign` | coordenador, admin | Define o agente responsável |
 | `PATCH` | `/reports/:id/status` | responsável, coordenador, admin | Altera a situação e registra o andamento |
 | `POST` | `/reports/:id/updates` | todos | Adiciona uma observação ao histórico |
-| `GET` | `/reports/assignable-agents` | coordenador, admin | Agentes ativos (`id` e `name`) disponíveis para atribuição |
+| `GET` | `/reports/assignable-agents` | todos | Agentes ativos (`id` e `name`), para atribuir responsável e para filtrar a listagem |
 
 ### Ordenação de `GET /reports`
 
@@ -343,7 +343,13 @@ Devolve o mínimo necessário para a atribuição, apenas de agentes com `active
 ```
 
 O cadastro completo de agentes segue restrito ao administrador em `GET /agents` — esta rota
-existe para que o coordenador possa atribuir um responsável **sem** receber e-mails e perfis.
+existe para atribuir um responsável **sem** receber e-mails e perfis.
+
+A leitura é aberta a **todo agente autenticado**: o `RF-OP-16` pede filtro da listagem por
+responsável para o perfil *Agente*, e sem esta rota o filtro sumiria justamente para o perfil
+mais numeroso. Não há o que proteger — são os mesmos nomes que já aparecem na coluna
+"Responsável" da listagem. A **ação** de atribuir segue restrita a coordenador e administrador
+em `PATCH /reports/:id/assign`.
 
 ### Metadados internos
 

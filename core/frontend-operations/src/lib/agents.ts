@@ -1,8 +1,6 @@
 import { cache } from 'react';
-import type { AgentRole } from '@/types/enums';
 import type { AgentSummary } from '@/types/report';
 import type { CountByKey } from '@/types/dashboard';
-import { canCoordinate } from '@/types/agent';
 import { ApiError } from './api-error';
 import { apiRequest } from './api-client';
 
@@ -17,15 +15,13 @@ import { apiRequest } from './api-client';
 /**
  * Agentes que podem receber uma ocorrência.
  *
- * `GET /reports/assignable-agents` é restrito a coordenador e administrador, e o
- * perfil é conferido **antes** de chamar — não para proteger nada, que é papel da
- * API, mas para não provocar um `403` previsível a cada carregamento da lista de
- * um agente comum. Para esse perfil o recorte pelas próprias ocorrências é o
- * atalho "Minhas ocorrências" (RF-OP-20).
+ * Aberta a todo agente autenticado, porque o `RF-OP-16` pede o filtro por
+ * responsável também para o perfil *Agente* — antes a rota era restrita à
+ * coordenação, e o filtro sumia justamente para o perfil mais numeroso. A
+ * **ação** de atribuir continua restrita, e quem a oferece é o painel de
+ * atendimento, pelo perfil.
  */
-export const getAssignableAgents = cache(async (role: AgentRole): Promise<AgentSummary[]> => {
-  if (!canCoordinate(role)) return [];
-
+export const getAssignableAgents = cache(async (): Promise<AgentSummary[]> => {
   try {
     return await apiRequest<AgentSummary[]>('/reports/assignable-agents');
   } catch (error) {

@@ -134,11 +134,24 @@ export class ReportsController {
    * Declarada **antes** de `:id`: o Express casa as rotas na ordem de registro, e
    * `assignable-agents` cairia no parâmetro de id, virando um 400 de UUID.
    */
+  /*
+   * Aberta a todo agente autenticado, e não só à coordenação.
+   *
+   * A restrição original acompanhava a *ação* de atribuir, que segue restrita em
+   * `PATCH /reports/:id/assign`. Mas esta rota é leitura, e o agente comum
+   * precisa dela para filtrar a lista por responsável (`RF-OP-16`, essencial
+   * para o perfil *Agente*) — sem ela, o filtro sumia justamente para o perfil
+   * mais numeroso.
+   *
+   * Não há o que proteger aqui: a resposta traz apenas `id` e `name`, e são os
+   * mesmos nomes que o agente já lê na coluna "Responsável" da listagem. O
+   * cadastro completo, com e-mail e perfil, segue restrito ao administrador em
+   * `GET /agents`.
+   */
   @Get('assignable-agents')
   @ApiBearerAuth()
-  @Roles(AgentRole.COORDINATOR, AgentRole.ADMIN)
   @ApiOperation({
-    summary: 'Agentes ativos disponíveis para atribuição',
+    summary: 'Agentes ativos disponíveis para atribuição e para filtrar a listagem',
     description: 'Devolve apenas id e nome — o cadastro completo segue restrito ao administrador.',
   })
   @ApiOkResponse({ type: [AgentSummaryDto] })

@@ -537,10 +537,35 @@ describe('Gestão de ocorrências (e2e)', () => {
       expect(JSON.stringify(body)).not.toContain('@');
     });
 
-    it('responde 403 ao perfil AGENT na lista de atribuíveis', async () => {
-      await request(app.getHttpServer())
+    /**
+     * A leitura é aberta a todo agente autenticado; o que segue restrito é a
+     * **ação** de atribuir. O agente comum precisa desta lista para filtrar a
+     * listagem por responsável (`RF-OP-16`), e os nomes que ela devolve são os
+     * mesmos que ele já lê na coluna "Responsável".
+     */
+    it('serve a lista também ao perfil AGENT, sem e-mail nem perfil', async () => {
+      const { body } = await request(app.getHttpServer())
         .get('/api/v1/reports/assignable-agents')
         .set('Authorization', `Bearer ${agente}`)
+        .expect(200);
+
+      expect(body.length).toBeGreaterThan(0);
+      expect(Object.keys(body[0]).sort()).toEqual(['id', 'name']);
+      expect(JSON.stringify(body)).not.toContain('@');
+      expect(JSON.stringify(body)).not.toContain('COORDINATOR');
+    });
+
+    it('exige autenticação para a lista de atribuíveis', async () => {
+      await request(app.getHttpServer()).get('/api/v1/reports/assignable-agents').expect(401);
+    });
+
+    it('mas recusa a atribuição feita por quem não coordena', async () => {
+      const id = await emAtendimento();
+
+      await request(app.getHttpServer())
+        .patch(`/api/v1/reports/${id}/assign`)
+        .set('Authorization', `Bearer ${agente}`)
+        .send({ assignedToId: idAgente })
         .expect(403);
     });
 

@@ -46,7 +46,7 @@ export default async function ReportDetailPage({
 
   const [portalMetadata, assignableAgents] = await Promise.all([
     getMetadata(),
-    getAssignableAgents(agent.role),
+    getAssignableAgents(),
   ]);
   const isAssignee = report.assignedTo?.id === agent.id;
 

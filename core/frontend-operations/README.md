@@ -27,6 +27,8 @@ npm run dev                    # http://localhost:3001
 | `npm run dev` | Servidor de desenvolvimento na porta 3001 |
 | `npm run build` | Build de produção |
 | `npm start` | Executa o build na porta 3001 |
+| `npm test` | Testes (Vitest + Testing Library) |
+| `npm run test:watch` | Testes em modo contínuo |
 | `npm run lint` | ESLint |
 
 A porta já está fixada nos scripts `dev` e `start` — não é preciso passar `-p`.

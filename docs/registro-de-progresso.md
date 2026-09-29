@@ -38,7 +38,7 @@ fundação do Portal de Operações.
 | **Telas restantes do Portal de Operações** | ⬜ Mapa e agentes — etapas O5 e O6 |
 | **Portal do Cidadão** | ⬜ Apenas a página inicial do scaffold |
 
-Em uma frase: **a API está pronta — as 27 rotas, 280 testes; o Portal de Operações já atende
+Em uma frase: **a API está pronta — as 27 rotas, 282 testes no backend e 48 no portal; o Portal de Operações já atende
 as ocorrências do começo ao fim e tem painel, e faltam o mapa, os agentes e o Portal do Cidadão
 inteiro.**
 
@@ -580,6 +580,30 @@ Verificado contra a API no ar: cada indicador leva a uma lista cujo total **bate
 exibido** — conferido nos cinco recortes; o período acompanha os links; o gráfico tem rótulo
 acessível, valor por barra e tabela alternativa aberta por `<details>`.
 
+### 29 de setembro de 2026 — testes do portal e abertura da lista de agentes
+
+Duas coisas fora do plano, ambas pedidas depois de O4.
+
+**Suíte de testes do Portal de Operações** — 48 testes, Vitest + Testing Library. O alvo são as
+peças que **decidem** algo, não as telas inteiras: o recorte lido da URL e a sua ida e volta, a
+tradução de falhas da API, os rótulos das enumerações, os predicados de perfil, a formatação de
+datas no fuso fixado, e os dois componentes do painel. Telas e Server Actions ficam de fora —
+dependem da API no ar, e continuam verificadas pelo percurso manual.
+
+O teste mais útil é o do gráfico: ele reintroduz a condição do defeito do React 19 — `<title>`
+com vários filhos vem vazio — e **falha**. Conferi desfazendo a correção e vendo o teste quebrar,
+porque um teste de regressão que nunca falhou não protege nada.
+
+Instalar o Vitest exigiu subir o `@types/node` do portal de `^20` para `^24`, que é a versão do
+Node em uso e a mesma do backend.
+
+**`GET /reports/assignable-agents` deixou de ser restrito à coordenação.** A restrição
+acompanhava a *ação* de atribuir, e vazou para uma *leitura* que o `RF-OP-16` — filtro por
+responsável, essencial para o perfil *Agente* — precisa. O filtro sumia justamente para o perfil
+mais numeroso. Não havia o que proteger: a resposta traz só `id` e `name`, os mesmos nomes que o
+agente já lê na coluna "Responsável". `PATCH /reports/:id/assign` segue restrito, e há teste e2e
+afirmando os dois lados.
+
 ## 3. O que está pronto, em detalhe
 
 ### 3.1 Infraestrutura e ambiente
@@ -664,8 +688,9 @@ Registrado explicitamente, para que a ausência não seja confundida com esqueci
 - **nenhum mapa de conjunto** — `/mapa` segue como destino da navegação, sem conteúdo próprio
   (etapa O5); `/agentes` idem (O6);
 - **nenhuma tela no Portal do Cidadão**, e nenhum componente `<LocationPicker>`;
-- **nenhum teste automatizado nos portais** — a verificação de O1 e O2 foi feita contra a
-  aplicação no ar, e o plano não prevê suíte de testes de interface;
+- **nenhum teste de tela nem de Server Action no portal** — a suíte cobre as peças que decidem
+  algo (48 testes); telas inteiras dependem da API no ar e seguem verificadas pelo percurso
+  manual descrito em cada etapa;
 - **nenhuma exportação em CSV** — `RF-OP-24` é a etapa O7.
 
 ## 5. Próximo passo
