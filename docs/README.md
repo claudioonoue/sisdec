@@ -42,6 +42,8 @@ Cidadão                        API (SISDEC)                    Agente
 
 - [Arquitetura](arquitetura.md) — visão geral, decisões técnicas e organização do código
 - [Glossário](glossario.md) — termos do domínio usados em todo o projeto
+- [Plano de implementação](plano-de-implementacao.md) — ordem de construção das três aplicações, etapa por etapa
+- [Registro de progresso](registro-de-progresso.md) — o que já foi construído, o que falta e o próximo passo
 
 ### Por aplicação
 
