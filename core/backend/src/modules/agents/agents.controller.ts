@@ -4,6 +4,7 @@ import {
   ApiConflictResponse,
   ApiForbiddenResponse,
   ApiNotFoundResponse,
+  ApiCreatedResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
@@ -28,12 +29,14 @@ export class AgentsController {
 
   @Get()
   @ApiOperation({ summary: 'Lista os agentes, com perfil e situação de ativação' })
+  @ApiOkResponse({ type: [AgentResponseDto] })
   findAll(@Query() query: PaginationQueryDto) {
     return this.agents.findAll(query);
   }
 
   @Post()
   @ApiOperation({ summary: 'Cadastra um agente' })
+  @ApiCreatedResponse({ type: AgentResponseDto })
   @ApiConflictResponse({ description: 'E-mail já cadastrado' })
   create(@Body() dto: CreateAgentDto): Promise<AgentResponseDto> {
     return this.agents.create(dto);
@@ -41,6 +44,7 @@ export class AgentsController {
 
   @Patch(':id')
   @ApiOperation({ summary: 'Altera os dados e o perfil de um agente' })
+  @ApiOkResponse({ type: AgentResponseDto })
   @ApiNotFoundResponse({ description: 'Agente não encontrado' })
   @ApiConflictResponse({ description: 'E-mail já cadastrado' })
   update(

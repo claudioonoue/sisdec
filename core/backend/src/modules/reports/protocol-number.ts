@@ -34,5 +34,15 @@ export function sequenceOf(protocolNumber: string): number {
  * ou de outra tela.
  */
 export function normalizeProtocolNumber(input: string): string {
-  return input.trim().toUpperCase().replace(/\s+/g, '');
+  return (
+    input
+      // Caracteres de controle são removidos antes de chegar ao banco: um byte
+      // nulo faz o PostgreSQL recusar a consulta, e entrada malformada deve virar
+      // 404, não erro interno (RNF-API-09). Casar com eles é justamente o ponto.
+      // oxlint-disable-next-line no-control-regex
+      .replace(/[\u0000-\u001f\u007f]/g, '')
+      .trim()
+      .toUpperCase()
+      .replace(/\s+/g, '')
+  );
 }

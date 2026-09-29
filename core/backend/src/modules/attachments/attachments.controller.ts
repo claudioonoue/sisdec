@@ -17,6 +17,7 @@ import {
   ApiConsumes,
   ApiCreatedResponse,
   ApiNotFoundResponse,
+  ApiOkResponse,
   ApiOperation,
   ApiTags,
   ApiTooManyRequestsResponse,
@@ -70,6 +71,10 @@ export class AttachmentsController {
     description:
       'Sem autenticação, porque o Portal do Cidadão exibe as fotos na consulta por protocolo. ' +
       'A proteção é o id ser um UUID não enumerável.',
+  })
+  @ApiOkResponse({
+    description: 'Conteúdo da imagem, no tipo gravado no registro',
+    content: { 'image/jpeg': {}, 'image/png': {}, 'image/webp': {} },
   })
   @ApiNotFoundResponse({ description: 'Anexo não encontrado' })
   async download(@Param('id', ParseUUIDPipe) id: string): Promise<StreamableFile> {

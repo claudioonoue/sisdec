@@ -271,5 +271,18 @@ describe('Ocorrências — registro e consulta pública (e2e)', () => {
     it('responde 404 para protocolo em formato inválido, sem erro interno', async () => {
       await request(app.getHttpServer()).get('/api/v1/reports/protocol/qualquer-coisa').expect(404);
     });
+
+    it('trata caractere de controle no protocolo sem erro interno (RNF-API-09)', async () => {
+      // Só de controle: nada sobra depois da normalização, então não existe.
+      await request(app.getHttpServer()).get('/api/v1/reports/protocol/%00').expect(404);
+
+      // Anexado a um protocolo válido: o caractere é descartado como o são os
+      // espaços, e a consulta resolve normalmente. O que não pode é virar 500 —
+      // o PostgreSQL recusa o byte nulo, e isso derrubaria a requisição.
+      const { status } = await request(app.getHttpServer()).get(
+        `/api/v1/reports/protocol/${protocolo}%00`,
+      );
+      expect(status).toBe(200);
+    });
   });
 });

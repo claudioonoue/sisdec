@@ -86,8 +86,8 @@ A documentação completa está em [docs/README.md](docs/README.md).
 - ✅ Bootstrap das três aplicações (NestJS + dois Next.js), com dependências instaladas
 - ✅ Requisitos funcionais e não funcionais das três aplicações (332 requisitos)
 - ✅ Plano de implementação em 20 etapas
-- ⬜ Modelagem do banco no Prisma e primeira migração
-- ⬜ Módulos da API (autenticação, ocorrências, anexos)
+- ✅ Modelagem do banco no Prisma e migração inicial
+- ✅ **API completa** — as 27 rotas do contrato, 143 testes unitários e 104 end-to-end
 - ⬜ Telas dos portais
 
 O estado detalhado está em [docs/registro-de-progresso.md](docs/registro-de-progresso.md).

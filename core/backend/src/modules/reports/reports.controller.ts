@@ -20,6 +20,13 @@ import type { AuthenticatedAgent } from '../auth/authenticated-agent.js';
 import { ListReportsQueryDto } from './dto/list-reports.dto.js';
 import { MapReportsQueryDto, MapResponseDto } from './dto/map-reports.dto.js';
 import {
+  AgentSummaryDto,
+  PaginatedReportsDto,
+  ReportDetailDto,
+  ReportListItemDto,
+  ReportUpdateResponseDto,
+} from './dto/report-management-response.dto.js';
+import {
   AssignReportDto,
   ChangeStatusDto,
   ConcludeTriageDto,
@@ -77,6 +84,7 @@ export class ReportsController {
   @Get()
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Lista as ocorrências, com filtros combináveis e paginação' })
+  @ApiOkResponse({ type: PaginatedReportsDto })
   findAll(@Query() query: ListReportsQueryDto) {
     return this.management.findAll(query);
   }
@@ -101,6 +109,7 @@ export class ReportsController {
     summary: 'Exporta a lista filtrada em CSV',
     description: 'Mesmos filtros de GET /reports, sem paginação, respondido em fluxo.',
   })
+  @ApiOkResponse({ description: 'Arquivo CSV', content: { 'text/csv': {} } })
   async exportCsv(@Query() query: ListReportsQueryDto, @Res() response: Response): Promise<void> {
     response.set({
       'Content-Type': 'text/csv; charset=utf-8',
@@ -132,6 +141,7 @@ export class ReportsController {
     summary: 'Agentes ativos disponíveis para atribuição',
     description: 'Devolve apenas id e nome — o cadastro completo segue restrito ao administrador.',
   })
+  @ApiOkResponse({ type: [AgentSummaryDto] })
   findAssignableAgents() {
     return this.management.findAssignableAgents();
   }
@@ -139,6 +149,7 @@ export class ReportsController {
   @Get(':id')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Detalhe completo, com anexos, histórico e dados do cidadão' })
+  @ApiOkResponse({ type: ReportDetailDto })
   @ApiNotFoundResponse({ description: 'Ocorrência não encontrada' })
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.management.findOne(id);
@@ -148,6 +159,7 @@ export class ReportsController {
   @ApiBearerAuth()
   @Roles(AgentRole.COORDINATOR, AgentRole.ADMIN)
   @ApiOperation({ summary: 'Assume a triagem: RECEIVED para TRIAGE' })
+  @ApiOkResponse({ type: ReportListItemDto })
   @ApiBadRequestResponse({ description: 'A ocorrência não está em RECEIVED' })
   startTriage(@Param('id', ParseUUIDPipe) id: string, @CurrentAgent() agent: AuthenticatedAgent) {
     return this.management.startTriage(id, agent);
@@ -162,6 +174,7 @@ export class ReportsController {
       'outcome ACCEPT encaminha para IN_PROGRESS e exige priority; REJECT encerra como ' +
       'improcedente e exige comment.',
   })
+  @ApiOkResponse({ type: ReportListItemDto })
   @ApiBadRequestResponse({ description: 'A ocorrência não está em TRIAGE, ou faltam campos' })
   concludeTriage(
     @Param('id', ParseUUIDPipe) id: string,
@@ -175,6 +188,7 @@ export class ReportsController {
   @ApiBearerAuth()
   @Roles(AgentRole.COORDINATOR, AgentRole.ADMIN)
   @ApiOperation({ summary: 'Define o agente responsável' })
+  @ApiOkResponse({ type: ReportListItemDto })
   @ApiBadRequestResponse({ description: 'Agente inativo' })
   @ApiNotFoundResponse({ description: 'Ocorrência ou agente não encontrado' })
   assign(
@@ -191,6 +205,7 @@ export class ReportsController {
     summary: 'Conclui ou cancela a ocorrência',
     description: 'Um agente só altera a situação da ocorrência que lhe foi atribuída.',
   })
+  @ApiOkResponse({ type: ReportListItemDto })
   @ApiBadRequestResponse({ description: 'Transição inválida ou comentário ausente' })
   @ApiForbiddenResponse({ description: 'Agente não é o responsável pela ocorrência' })
   changeStatus(
@@ -204,6 +219,7 @@ export class ReportsController {
   @Post(':id/updates')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Acrescenta uma observação ao histórico' })
+  @ApiCreatedResponse({ type: ReportUpdateResponseDto })
   @ApiNotFoundResponse({ description: 'Ocorrência não encontrada' })
   addUpdate(
     @Param('id', ParseUUIDPipe) id: string,

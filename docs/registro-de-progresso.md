@@ -6,7 +6,7 @@ O que já foi construído no SISDEC, o que ainda não existe e qual é o próxim
 > [plano de implementação](plano-de-implementacao.md). Registra **estado**, não intenção —
 > um item só é marcado como pronto quando está verificado e commitado.
 
-Última atualização: **29 de setembro de 2026** — etapas B0 a B6 concluídas.
+Última atualização: **29 de setembro de 2026** — **API concluída** (etapas B0 a B7).
 
 ---
 
@@ -28,11 +28,13 @@ O que já foi construído no SISDEC, o que ainda não existe e qual é o próxim
 | Anexos (etapa B4) | ✅ Concluída e verificada |
 | Gestão de ocorrências (etapa B5) | ✅ Concluída e verificada |
 | Mapa, exportação e painel (etapa B6) | ✅ Concluída e verificada |
+| Fechamento da API (etapa B7) | ✅ Concluída e verificada |
 | Contrato da API | ✅ **As 27 rotas implementadas**, conferidas contra `api.md` |
-| **Fechamento da API (etapa B7)** | ⬜ Cobertura de testes e Swagger completo |
+| **Portal de Operações** | ⬜ Apenas a página inicial do scaffold |
+| **Portal do Cidadão** | ⬜ Apenas a página inicial do scaffold |
 | **Telas dos portais** | ⬜ Apenas a página inicial do scaffold |
 
-Em uma frase: **a API está funcionalmente completa; falta o fechamento de qualidade em B7.**
+Em uma frase: **a API está pronta — as 27 rotas, 247 testes; falta construir os dois portais.**
 
 ## 2. Linha do tempo
 
@@ -258,11 +260,43 @@ Três decisões:
   Antes da triagem a prioridade é nula, e omiti-las faria a soma por prioridade não fechar com
   o total — há teste conferindo que fecha.
 
+### 29 de setembro de 2026 — etapa B7: fechamento da API
+
+Conforme o [plano](plano-de-implementacao.md#b7-fechamento-da-api). **Encerra a API**: as 8
+etapas do backend estão concluídas.
+
+- Testes unitários das regras centrais que faltavam: autorização por responsável e por perfil
+  no `ReportsManagementService`, o filtro global de exceções e o interceptor de log.
+- Swagger completo: **27 operações e 33 esquemas de DTO, com zero lacunas** — conferido por
+  auditoria do documento gerado, que exige resumo, resposta de sucesso, `400` em toda rota com
+  corpo, `401` em toda rota autenticada e `500` em todas.
+- Conferência da [lista de RNF](backend/requisitos-nao-funcionais.md) contra a API rodando.
+- 41 testes unitários e 1 e2e novos. Total: **143 unitários e 104 e2e**.
+
+Duas decisões:
+
+- **Os códigos transversais são acrescentados ao documento OpenAPI**, em `swagger-document.ts`,
+  e não repetidos em decoradores nas 27 rotas. Repetir convidaria ao esquecimento: uma rota
+  nova nasceria sem eles e ninguém notaria.
+- **A auditoria do Swagger é um script conferível**, não uma revisão visual: ela é que garante
+  que o `RNF-API-38` continue valendo quando uma rota for acrescentada.
+
+A conferência dos RNF encontrou um defeito: um protocolo contendo **byte nulo** virava `500`,
+porque o PostgreSQL recusa o caractere. Entrada malformada deve virar `404`, não erro interno
+(`RNF-API-09`). A normalização passou a descartar caracteres de controle, como já descartava
+espaços. O teste correspondente precisou ser corrigido duas vezes até afirmar a propriedade
+certa — o que importa não é o código ser `404`, e sim **nunca ser 500**.
+
+Também conferi, contra a API no ar: CORS recusando origem não listada, nenhum `.env`
+versionado, ausência de SQL cru inseguro, nenhuma rotina que altere ou remova `ReportUpdate`,
+prefixo `/api/v1` obrigatório, `500` sem vazar detalhe interno e datas em ISO 8601 UTC. Os
+tempos de resposta ficaram entre 1 ms e 19 ms, bem dentro dos tetos de 500 ms e 1 s.
+
 ### Em andamento — ainda não commitado
 
 - [Plano de implementação](plano-de-implementacao.md), com 20 etapas.
 - Este registro de progresso.
-- Tudo o que a etapa B6 produziu.
+- Tudo o que a etapa B7 produziu.
 
 ## 3. O que está pronto, em detalhe
 
@@ -352,12 +386,14 @@ Registrado explicitamente, para que a ausência não seja confundida com esqueci
 
 ## 5. Próximo passo
 
-**Etapa B7 — Fechamento da API**, do
-[plano de implementação](plano-de-implementacao.md#b7-fechamento-da-api): cobertura de testes
-das regras centrais, Swagger completo com DTOs e códigos de resposta, e conferência da lista de
-requisitos não funcionais.
+**Etapa O1 — Fundação e sessão do Portal de Operações**, do
+[plano de implementação](plano-de-implementacao.md#o1-fundação-e-sessão): o cliente HTTP, os
+tipos da API, a carga dos metadados, a tela de login com guarda de rotas e o layout com
+navegação.
 
-Depois dela a API está pronta, e o trabalho segue nos portais — **O1 e C1 já destravadas**.
+A API está pronta, então **O1 e C1 podem correr em qualquer ordem** — ou em paralelo. Pelo
+[plano](plano-de-implementacao.md#2-ordem-adotada-e-por-quê), o Portal de Operações vem
+primeiro, por exercitar o domínio inteiro.
 
 ## 6. Como manter este documento
 

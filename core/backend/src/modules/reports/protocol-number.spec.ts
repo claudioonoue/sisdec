@@ -40,6 +40,11 @@ describe('normalizeProtocolNumber', () => {
     expect(normalizeProtocolNumber('SISDEC- 2026 -000142')).toBe('SISDEC-2026-000142');
   });
 
+  it('remove caracteres de controle, que o banco recusaria (RNF-API-09)', () => {
+    expect(normalizeProtocolNumber('SISDEC-2026-000142\u0000')).toBe('SISDEC-2026-000142');
+    expect(normalizeProtocolNumber('\u0000\u001f')).toBe('');
+  });
+
   it('é idempotente', () => {
     const uma = normalizeProtocolNumber(' sisdec-2026-000142 ');
     expect(normalizeProtocolNumber(uma)).toBe(uma);
