@@ -1,5 +1,6 @@
 import type { INestApplication } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import request from 'supertest';
 import { AppModule } from './../src/app.module.js';
 import { hashPassword } from './../src/common/password.js';
@@ -45,7 +46,13 @@ describe('Autenticação e agentes (e2e)', () => {
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      // O limite de requisições tem suíte própria (throttling.e2e-spec.ts). Aqui
+      // ele é desligado: esta suíte faz mais logins do que o limite permite, e
+      // afrouxá-lo em produção para acomodar teste seria o compromisso errado.
+      .overrideGuard(ThrottlerGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     app = configureApp(moduleFixture.createNestApplication());
     await app.init();

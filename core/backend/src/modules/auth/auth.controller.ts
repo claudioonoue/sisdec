@@ -1,11 +1,13 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
+  ApiTooManyRequestsResponse,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { CurrentAgent } from '../../common/decorators/current-agent.decorator.js';
 import { Public } from '../../common/decorators/public.decorator.js';
 import { AuthService } from './auth.service.js';
@@ -20,12 +22,16 @@ export class AuthController {
 
   @Public()
   @Post('login')
+  // Limite por IP para conter tentativa em massa de senha (RNF-API-15).
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Autentica um agente e devolve o token JWT' })
   @ApiOkResponse({ type: LoginResponseDto })
   @ApiUnauthorizedResponse({
     description: 'Credenciais inválidas ou conta desativada — a resposta não distingue os casos',
   })
+  @ApiTooManyRequestsResponse({ description: 'Limite de tentativas por minuto excedido' })
   login(@Body() dto: LoginDto): Promise<LoginResponseDto> {
     return this.auth.login(dto);
   }

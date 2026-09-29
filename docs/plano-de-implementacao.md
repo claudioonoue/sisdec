@@ -442,7 +442,7 @@ dispensável.
 
 | Risco | Onde aparece | Contenção |
 |---|---|---|
-| Unicidade do protocolo sob concorrência | B3 | Restrição `UNIQUE` no banco e nova tentativa em caso de colisão — nunca "consultar e depois inserir" |
+| Unicidade do protocolo sob concorrência | B3 | **Resolvido em B3**: a mitigação prevista (`UNIQUE` + nova tentativa) não bastou — com N registros simultâneos a disputa se resolve em até N rodadas, acima de qualquer limite razoável de tentativas. A geração passou a ser serializada por um *advisory lock* do PostgreSQL preso ao ano, com o `UNIQUE` como garantia final |
 | Vazamento de dado pessoal na consulta pública | B3, C4 | Lista explícita de campos devolvidos e teste automatizado sobre a resposta |
 | Leaflet escapar dos componentes de mapa | O5, C3 | `grep` por `leaflet` fora de `components/map` na conferência de cada etapa |
 | Enumerações fixadas em código nos portais | O1, C1 | Valores só em `types/`; conferência por busca dos literais |

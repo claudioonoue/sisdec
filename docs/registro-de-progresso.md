@@ -6,7 +6,7 @@ O que já foi construído no SISDEC, o que ainda não existe e qual é o próxim
 > [plano de implementação](plano-de-implementacao.md). Registra **estado**, não intenção —
 > um item só é marcado como pronto quando está verificado e commitado.
 
-Última atualização: **29 de setembro de 2026** — etapas B0, B1 e B2 concluídas.
+Última atualização: **29 de setembro de 2026** — etapas B0 a B3 concluídas.
 
 ---
 
@@ -24,10 +24,11 @@ O que já foi construído no SISDEC, o que ainda não existe e qual é o próxim
 | Fundação da API (etapa B0) | ✅ Concluída e verificada |
 | Metadados públicos (etapa B1) | ✅ Concluída e verificada |
 | Autenticação e agentes (etapa B2) | ✅ Concluída e verificada |
-| **Ocorrências** | ⬜ O núcleo do sistema ainda não existe — 9 das 25 rotas no ar |
+| Registro e consulta por protocolo (etapa B3) | ✅ Concluída e verificada |
+| **Gestão de ocorrências** | ⬜ Triagem, atribuição e histórico ainda não existem — 12 das 25 rotas no ar |
 | **Telas dos portais** | ⬜ Apenas a página inicial do scaffold |
 
-Em uma frase: **a API já autentica agentes e controla acesso por perfil; falta o núcleo — as ocorrências.**
+Em uma frase: **o cidadão já pode registrar uma ocorrência e acompanhá-la por protocolo; falta o atendimento pelos agentes.**
 
 ## 2. Linha do tempo
 
@@ -130,11 +131,46 @@ Node. Configurei `importFileExtension = "ts"` no gerador e liguei
 `rewriteRelativeImportExtensions` no `tsconfig.json`, então o mesmo código serve ao build
 (que emite `.js`) e à execução direta pelo Node.
 
+### 29 de setembro de 2026 — etapa B3: registro e consulta pública
+
+Conforme o [plano](plano-de-implementacao.md#b3-registro-e-consulta-pública-de-ocorrências).
+É o núcleo do sistema: o fluxo do cidadão já funciona ponta a ponta.
+
+- `POST /reports` sem autenticação, com `citizen` opcional, `status = RECEIVED` e `priority`
+  nula — ocorrência e cidadão gravados na mesma transação.
+- Protocolo `SISDEC-AAAA-NNNNNN` com sequência anual, derivada do maior protocolo do ano e não
+  de uma contagem de registros, que daria número repetido se algum dia houvesse exclusão.
+- `GET /reports/protocol/:protocolNumber` devolvendo apenas os campos públicos, com o
+  protocolo tolerante a caixa e espaços, e `404` para protocolo inexistente ou malformado.
+- *Rate limiting* nas rotas públicas de escrita e no login: 10 registros/min, 30 consultas/min
+  e 5 logins/min, com `429` no envelope padrão.
+- 14 testes unitários e 21 e2e novos.
+
+**O teste de concorrência encontrou um defeito de projeto.** A mitigação prevista no plano —
+`UNIQUE` no banco mais nova tentativa em caso de colisão — não resiste a registros
+simultâneos: 20 requisições disputando o mesmo número resolvem a disputa em até 20 rodadas,
+muito acima de qualquer limite razoável de tentativas, e a maioria falhava com violação de
+unicidade. A geração passou a ser serializada por um *advisory lock* do PostgreSQL preso ao
+ano, liberado no commit; o `UNIQUE` continua como garantia final. Confirmei que o teste pega o
+defeito removendo o *lock* e vendo as violações voltarem.
+
+Duas decisões de privacidade, ambas cobertas por teste:
+
+- a consulta pública **não** devolve `description`, `address`, coordenadas, `citizen`,
+  `assignedTo` nem o `id` interno da ocorrência — o teste procura o nome, o e-mail, o telefone
+  e a rua no corpo serializado, em vez de apenas conferir a ausência das chaves;
+- `priority` também fica fora, e há teste que atribui `CRITICAL` à ocorrência antes de
+  consultar, para garantir que o valor não escapa.
+
+A limpeza das suítes e2e passou a usar um marcador gravado na descrição, em vez da lista de
+protocolos montada durante as asserções: quando o teste de concorrência quebrou, os registros
+criados ficaram no banco justamente porque a lista nunca chegou a ser preenchida.
+
 ### Em andamento — ainda não commitado
 
 - [Plano de implementação](plano-de-implementacao.md), com 20 etapas.
 - Este registro de progresso.
-- Tudo o que a etapa B2 produziu.
+- Tudo o que a etapa B3 produziu.
 
 ## 3. O que está pronto, em detalhe
 
@@ -224,14 +260,13 @@ Registrado explicitamente, para que a ausência não seja confundida com esqueci
 
 ## 5. Próximo passo
 
-**Etapa B3 — Registro e consulta pública de ocorrências**, do
-[plano de implementação](plano-de-implementacao.md#b3-registro-e-consulta-pública-de-ocorrências):
-`POST /reports`, o gerador de protocolo `SISDEC-AAAA-NNNNNN` com sequência anual,
-`GET /reports/protocol/:protocolNumber` sem dado pessoal, e o *rate limiting* das rotas
-públicas.
+**Etapa B4 — Anexos**, do [plano de implementação](plano-de-implementacao.md#b4-anexos):
+a interface `StorageService` com a implementação local, `POST /reports/:id/attachments`
+limitado à janela de `RECEIVED`, verificação do tipo pelo conteúdo do arquivo e
+`GET /attachments/:id` servindo em fluxo.
 
-É o núcleo do sistema e o próximo trecho do caminho crítico. A etapa O1 do Portal de Operações
-já está destravada por B2, e pode correr em paralelo.
+Depois dela, o caminho crítico segue em **B5 → B6**. As etapas O1 e C1 dos portais já estão
+destravadas e podem correr em paralelo.
 
 ## 6. Como manter este documento
 

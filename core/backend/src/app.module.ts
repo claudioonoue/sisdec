@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
 import { RolesGuard } from './common/guards/roles.guard.js';
 import { validateEnvironment } from './config/env.validation.js';
@@ -8,6 +9,7 @@ import { AgentsModule } from './modules/agents/agents.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { HealthModule } from './modules/health/health.module.js';
 import { MetadataModule } from './modules/metadata/metadata.module.js';
+import { ReportsModule } from './modules/reports/reports.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 
 @Module({
@@ -17,11 +19,15 @@ import { PrismaModule } from './prisma/prisma.module.js';
       // Falha na inicialização quando o ambiente está incompleto (RNF-API-33).
       validate: validateEnvironment,
     }),
+    // Limites nomeados; o ThrottlerGuard é aplicado rota a rota, apenas nas
+    // públicas de escrita e no login (RNF-API-15).
+    ThrottlerModule.forRoot([{ name: 'default', limit: 10, ttl: 60_000 }]),
     PrismaModule,
     AuthModule,
     HealthModule,
     MetadataModule,
     AgentsModule,
+    ReportsModule,
   ],
   providers: [
     // Autenticação e autorização são globais: o padrão é rota protegida, e uma
