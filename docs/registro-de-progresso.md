@@ -6,7 +6,7 @@ O que já foi construído no SISDEC, o que ainda não existe e qual é o próxim
 > [plano de implementação](plano-de-implementacao.md). Registra **estado**, não intenção —
 > um item só é marcado como pronto quando está verificado e commitado.
 
-Última atualização: **29 de setembro de 2026** — etapas B0 a B5 concluídas.
+Última atualização: **29 de setembro de 2026** — etapas B0 a B6 concluídas.
 
 ---
 
@@ -27,10 +27,12 @@ O que já foi construído no SISDEC, o que ainda não existe e qual é o próxim
 | Registro e consulta por protocolo (etapa B3) | ✅ Concluída e verificada |
 | Anexos (etapa B4) | ✅ Concluída e verificada |
 | Gestão de ocorrências (etapa B5) | ✅ Concluída e verificada |
-| **Painel e mapa** | ⬜ Indicadores, mapa e exportação ainda não existem — 21 das 25 rotas no ar |
+| Mapa, exportação e painel (etapa B6) | ✅ Concluída e verificada |
+| Contrato da API | ✅ **As 27 rotas implementadas**, conferidas contra `api.md` |
+| **Fechamento da API (etapa B7)** | ⬜ Cobertura de testes e Swagger completo |
 | **Telas dos portais** | ⬜ Apenas a página inicial do scaffold |
 
-Em uma frase: **o ciclo de vida da ocorrência funciona ponta a ponta; faltam os dados consolidados do painel.**
+Em uma frase: **a API está funcionalmente completa; falta o fechamento de qualidade em B7.**
 
 ## 2. Linha do tempo
 
@@ -231,11 +233,36 @@ A atribuição de responsável também grava andamento, para que a troca seja ra
 requisito pedia rastreabilidade das mudanças de situação, e trocar o responsável sem deixar
 registro deixaria um buraco no histórico.
 
+### 29 de setembro de 2026 — etapa B6: mapa, exportação e painel
+
+Conforme o [plano](plano-de-implementacao.md#b6-mapa-exportação-e-painel). Com ela, **as 27
+rotas do contrato estão implementadas** — conferido comparando o Swagger com as tabelas de
+[api.md](backend/api.md), sem sobra nem falta dos dois lados.
+
+- `GET /reports/map`: sem paginação, formato enxuto, apenas abertas quando não há filtro de
+  situação, teto de 500 com `truncated` e contagem das omitidas por falta de coordenadas.
+- `GET /reports/export` em CSV, restrito a coordenador e administrador.
+- `GET /dashboard/summary`, `/by-district` e `/timeline`, com recorte por período.
+- 15 testes e2e novos.
+
+Três decisões:
+
+- **O painel agrega no banco**, com `groupBy` e `count`. A *timeline* precisou de SQL
+  direto, porque o Prisma não agrupa por expressão derivada de coluna — e trazer as linhas para
+  agrupar em memória seria exatamente o que o `RNF-API-05` proíbe, justamente na tela mais
+  acessada pelos agentes.
+- **A exportação é um gerador assíncrono**, escrita lote a lote conforme o cursor avança: o CSV
+  inteiro nunca fica em memória. Sai com BOM, para o Excel não corromper os acentos, e com `;`
+  como separador, que o Excel em pt-BR reconhece sem pedir configuração.
+- **As ocorrências sem prioridade entram no painel como `SEM_PRIORIDADE`**, em vez de sumirem.
+  Antes da triagem a prioridade é nula, e omiti-las faria a soma por prioridade não fechar com
+  o total — há teste conferindo que fecha.
+
 ### Em andamento — ainda não commitado
 
 - [Plano de implementação](plano-de-implementacao.md), com 20 etapas.
 - Este registro de progresso.
-- Tudo o que a etapa B5 produziu.
+- Tudo o que a etapa B6 produziu.
 
 ## 3. O que está pronto, em detalhe
 
@@ -325,12 +352,12 @@ Registrado explicitamente, para que a ausência não seja confundida com esqueci
 
 ## 5. Próximo passo
 
-**Etapa B6 — Mapa, exportação e painel**, do
-[plano de implementação](plano-de-implementacao.md#b6-mapa-exportação-e-painel):
-`GET /reports/map` sem paginação, `GET /reports/export` em CSV e os três endpoints do painel,
-calculados por agregação no banco.
+**Etapa B7 — Fechamento da API**, do
+[plano de implementação](plano-de-implementacao.md#b7-fechamento-da-api): cobertura de testes
+das regras centrais, Swagger completo com DTOs e códigos de resposta, e conferência da lista de
+requisitos não funcionais.
 
-É o último trecho do caminho crítico antes do fechamento da API em B7.
+Depois dela a API está pronta, e o trabalho segue nos portais — **O1 e C1 já destravadas**.
 
 ## 6. Como manter este documento
 

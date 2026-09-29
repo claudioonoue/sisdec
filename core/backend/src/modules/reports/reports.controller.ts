@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Query, Res, UseGuards } from '@nestjs/common';
+import type { Response } from 'express';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -17,6 +18,7 @@ import { Roles } from '../../common/decorators/roles.decorator.js';
 import { AgentRole } from '../../generated/prisma/enums.js';
 import type { AuthenticatedAgent } from '../auth/authenticated-agent.js';
 import { ListReportsQueryDto } from './dto/list-reports.dto.js';
+import { MapReportsQueryDto, MapResponseDto } from './dto/map-reports.dto.js';
 import {
   AssignReportDto,
   ChangeStatusDto,
@@ -77,6 +79,46 @@ export class ReportsController {
   @ApiOperation({ summary: 'Lista as ocorrências, com filtros combináveis e paginação' })
   findAll(@Query() query: ListReportsQueryDto) {
     return this.management.findAll(query);
+  }
+
+  @Get('map')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Ocorrências com coordenadas, para plotagem',
+    description:
+      'Sem paginação e em formato enxuto. Sem filtro de situação, devolve apenas as abertas. ' +
+      'Limitada a 500 registros, sinalizando truncated.',
+  })
+  @ApiOkResponse({ type: MapResponseDto })
+  findForMap(@Query() query: MapReportsQueryDto): Promise<MapResponseDto> {
+    return this.management.findForMap(query);
+  }
+
+  @Get('export')
+  @ApiBearerAuth()
+  @Roles(AgentRole.COORDINATOR, AgentRole.ADMIN)
+  @ApiOperation({
+    summary: 'Exporta a lista filtrada em CSV',
+    description: 'Mesmos filtros de GET /reports, sem paginação, respondido em fluxo.',
+  })
+  async exportCsv(@Query() query: ListReportsQueryDto, @Res() response: Response): Promise<void> {
+    response.set({
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': `attachment; filename="ocorrencias-${new Date()
+        .toISOString()
+        .slice(0, 10)}.csv"`,
+    });
+
+    // BOM para o Excel reconhecer o UTF-8 e não corromper os acentos.
+    response.write('\uFEFF');
+
+    // Escrito lote a lote, conforme o gerador entrega: o CSV inteiro nunca fica
+    // em memória (RNF-API-06).
+    for await (const linha of this.management.streamCsv(query)) {
+      response.write(linha);
+    }
+
+    response.end();
   }
 
   /**

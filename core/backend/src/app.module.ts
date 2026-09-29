@@ -8,6 +8,7 @@ import { validateEnvironment } from './config/env.validation.js';
 import { AgentsModule } from './modules/agents/agents.module.js';
 import { AttachmentsModule } from './modules/attachments/attachments.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
+import { DashboardModule } from './modules/dashboard/dashboard.module.js';
 import { HealthModule } from './modules/health/health.module.js';
 import { MetadataModule } from './modules/metadata/metadata.module.js';
 import { ReportsModule } from './modules/reports/reports.module.js';
@@ -30,6 +31,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     AgentsModule,
     ReportsModule,
     AttachmentsModule,
+    DashboardModule,
   ],
   providers: [
     // Autenticação e autorização são globais: o padrão é rota protegida, e uma

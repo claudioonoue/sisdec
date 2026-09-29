@@ -17,6 +17,7 @@ import type {
   CreateReportUpdateDto,
 } from './dto/manage-report.dto.js';
 import type { ListReportsQueryDto } from './dto/list-reports.dto.js';
+import type { MapReportsQueryDto, MapResponseDto } from './dto/map-reports.dto.js';
 import { type TransitionOwner, findTransition, nextStatusesFrom } from './report-transitions.js';
 
 /** Campos da listagem — o suficiente para a tabela do Portal de Operações. */
@@ -31,6 +32,29 @@ const LIST_SELECT = {
   createdAt: true,
   assignedTo: { select: { id: true, name: true } },
 } as const;
+
+/**
+ * Teto de pontos devolvidos pelo mapa. A rota não é paginada, então precisa de um
+ * limite próprio: sem ele, um recorte amplo carregaria a base inteira.
+ */
+export const MAP_LIMIT = 500;
+
+/** Situações em que a ocorrência ainda está aberta — o padrão do mapa. */
+const OPEN_STATUSES = [ReportStatus.RECEIVED, ReportStatus.TRIAGE, ReportStatus.IN_PROGRESS];
+
+/** Cabeçalho do CSV de exportação, em pt-BR. */
+const CSV_HEADER = [
+  'Protocolo',
+  'Categoria',
+  'Tipo',
+  'Situacao',
+  'Prioridade',
+  'Bairro',
+  'Endereco',
+  'Responsavel',
+  'Registrada em',
+  'Resolvida em',
+];
 
 @Injectable()
 export class ReportsManagementService {
@@ -208,6 +232,113 @@ export class ReportsManagementService {
   }
 
   /**
+   * Ocorrências para plotagem, **sem paginação** e em formato enxuto (RF-API-67).
+   *
+   * Sem filtro de situação, devolve apenas as abertas — é o que o mapa do Portal
+   * de Operações mostra por padrão.
+   */
+  async findForMap(query: MapReportsQueryDto): Promise<MapResponseDto> {
+    const where = {
+      ...this.buildWhere(query as ListReportsQueryDto),
+      ...(query.status ? {} : { status: { in: OPEN_STATUSES } }),
+    };
+
+    const [comCoordenadas, totalDoRecorte] = await Promise.all([
+      this.prisma.report.findMany({
+        where: { ...where, latitude: { not: null }, longitude: { not: null } },
+        select: {
+          id: true,
+          protocolNumber: true,
+          type: true,
+          status: true,
+          priority: true,
+          latitude: true,
+          longitude: true,
+        },
+        orderBy: { createdAt: 'desc' },
+        take: MAP_LIMIT + 1,
+      }),
+      this.prisma.report.count({ where }),
+    ]);
+
+    // Uma linha a mais é buscada só para saber se o teto foi atingido.
+    const truncated = comCoordenadas.length > MAP_LIMIT;
+    const data = truncated ? comCoordenadas.slice(0, MAP_LIMIT) : comCoordenadas;
+
+    return {
+      data: data.map((r) => ({
+        ...r,
+        latitude: Number(r.latitude),
+        longitude: Number(r.longitude),
+      })),
+      total: data.length,
+      // Quantas do recorte não entram no mapa por não ter ponto — o portal avisa
+      // o agente em vez de deixá-las sumirem em silêncio (RF-OP-45).
+      omittedWithoutCoordinates: Math.max(totalDoRecorte - comCoordenadas.length, 0),
+      truncated,
+    };
+  }
+
+  /**
+   * Linhas do CSV de exportação, produzidas **em lotes** (RF-API-70).
+   *
+   * É um gerador para que o controlador escreva a resposta conforme os lotes
+   * chegam: o arquivo inteiro nunca fica em memória (RNF-API-06).
+   */
+  async *streamCsv(query: ListReportsQueryDto): AsyncGenerator<string> {
+    yield `${CSV_HEADER.join(';')}\n`;
+
+    const where = this.buildWhere(query);
+    const LOTE = 200;
+    let cursor: string | undefined;
+
+    for (;;) {
+      const lote = await this.prisma.report.findMany({
+        where,
+        select: {
+          id: true,
+          protocolNumber: true,
+          category: true,
+          type: true,
+          status: true,
+          priority: true,
+          district: true,
+          address: true,
+          createdAt: true,
+          resolvedAt: true,
+          assignedTo: { select: { name: true } },
+        },
+        orderBy: { id: 'asc' },
+        take: LOTE,
+        ...(cursor && { cursor: { id: cursor }, skip: 1 }),
+      });
+
+      if (lote.length === 0) {
+        return;
+      }
+
+      for (const r of lote) {
+        yield `${[
+          r.protocolNumber,
+          r.category,
+          r.type,
+          r.status,
+          r.priority ?? '',
+          r.district,
+          r.address,
+          r.assignedTo?.name ?? '',
+          r.createdAt.toISOString(),
+          r.resolvedAt?.toISOString() ?? '',
+        ]
+          .map(csvField)
+          .join(';')}\n`;
+      }
+
+      cursor = lote[lote.length - 1].id;
+    }
+  }
+
+  /**
    * **Ponto único** de mudança de situação (RF-API-42).
    *
    * Toda transição passa por aqui: é onde a tabela de transições é conferida, a
@@ -315,4 +446,12 @@ export class ReportsManagementService {
       }),
     };
   }
+}
+
+/**
+ * Escapa um campo para CSV. O separador é `;`, que o Excel em pt-BR reconhece
+ * sem pedir configuração.
+ */
+function csvField(value: string): string {
+  return /[";\n\r]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
 }
