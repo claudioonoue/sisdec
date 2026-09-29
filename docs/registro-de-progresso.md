@@ -33,12 +33,13 @@ fundação do Portal de Operações.
 | Contrato da API — implementação | ✅ **As 27 rotas implementadas**, conferidas contra `api.md` |
 | Fundação e sessão do Portal de Operações (etapa O1) | ✅ Concluída e verificada |
 | Lista e detalhe da ocorrência (etapa O2) | ✅ Concluída e verificada |
-| **Telas restantes do Portal de Operações** | ⬜ Atendimento, painel, mapa e agentes — etapas O3 a O6 |
+| Atendimento da ocorrência (etapa O3) | ✅ Concluída e verificada |
+| **Telas restantes do Portal de Operações** | ⬜ Painel, mapa e agentes — etapas O4 a O6 |
 | **Portal do Cidadão** | ⬜ Apenas a página inicial do scaffold |
 
-Em uma frase: **a API está pronta — as 27 rotas, 259 testes; o Portal de Operações já
-consulta as ocorrências ponta a ponta, e faltam o atendimento, o painel, o mapa, os agentes e
-o Portal do Cidadão inteiro.**
+Em uma frase: **a API está pronta — as 27 rotas, 272 testes; o Portal de Operações já atende
+as ocorrências do começo ao fim, e faltam o painel, o mapa, os agentes e o Portal do Cidadão
+inteiro.**
 
 ## 2. Linha do tempo
 
@@ -463,6 +464,67 @@ fotos — a API só as aceita em `RECEIVED` (`RF-API-69`) —, e só então a si
 histórico. A API é exigida **apenas** para os anexos: sem ela, o seed avisa e segue, e um banco
 de demonstração sem fotos continua servindo.
 
+### 29 de setembro de 2026 — etapa O3: atendimento
+
+Conforme o [plano](plano-de-implementacao.md#o3-atendimento). Fecha o ciclo de vida da
+ocorrência dentro do portal: o que a API sabia fazer desde B5 agora tem tela.
+
+- Triagem em duas etapas, atribuição de responsável, mudança de situação e registro de
+  andamento, todos como *Server Actions*.
+- `RF-API-72` na API: `GET /reports/:id` passou a devolver `availableTransitions`, resolvida
+  para quem pergunta.
+
+**A decisão que abriu a etapa** está registrada como
+[decisão 16](arquitetura.md#8-transições-oferecidas-pela-api-decisão-16): quais ações o detalhe
+oferece é **calculado pela API**, não por uma cópia da tabela de transições no portal. A tabela
+já divergiu uma vez aqui — foi ela que deixou a situação `TRIAGE` inalcançável —, e a
+[decisão 12](arquitetura.md#5-decisões-técnicas-registradas) já fixara o princípio um nível
+abaixo, nas enumerações. Copiá-la traria junto uma regra de autorização, a do responsável; o
+`RNF-OP-14` continua valendo nas duas opções, mas só na cópia a conveniência pode passar a
+**discordar** da proteção em silêncio.
+
+Na API, a conferência de perfil e a do responsável viraram predicados nomeados usados tanto
+pela listagem quanto pela execução — uma implementação, não duas. Um teste unitário afirma que
+concordam em toda combinação de situação, perfil e atribuição; um e2e afirma a propriedade da
+qual a tela depende: **o que é oferecido é aceito, e o que não é oferecido é recusado**.
+
+Duas ações não são transição de situação e seguem decididas no portal: atribuir responsável
+(coordenação) e registrar andamento (todos). São uma linha cada, fixadas pelo contrato de cada
+rota.
+
+**Três defeitos que só o uso mostrou**, os dois primeiros na mesma família — estado do React
+onde deveria haver campo de formulário:
+
+- **a escolha "visível ao cidadão" não chegava ao servidor sem JavaScript.** A caixa alimentava
+  um campo oculto pelo estado, e sem JS ia sempre `false`: o agente marcaria a caixa e o
+  andamento seria gravado como interno, sem nada indicar o contrário. A caixa passou a carregar
+  o próprio `name` e `value`; desmarcada não envia nada, e ausência é interno — o padrão certo.
+  Mesma correção no botão de desfecho da triagem;
+- **o comentário de encerramento vai a público, e a tela não avisava.** A API marca **toda**
+  mudança de situação como visível ao cidadão, para que o acompanhamento por protocolo mostre o
+  andamento — comportamento de B5, não defeito. Mas o `RF-OP-37` só previa o aviso no
+  andamento com caixa de visibilidade, e este caso é o mais fácil de errar justamente por não
+  ter caixa nenhuma para marcar. O aviso passou a acompanhar também os comentários de triagem e
+  de mudança de situação;
+- **as recusas da API chegavam ao agente com nome de campo em inglês** — «priority é
+  obrigatória», «comment é obrigatório na transição para REJECTED». São mensagens escritas para
+  quem integra, não para quem atende, e o `RNF-OP-05` pede pt-BR sem código técnico. As duas
+  conferências passaram a ser feitas antes do envio, com texto do portal. Elas repetem regras do
+  **endpoint de triagem** — encaminhar exige prioridade, recusar exige justificativa —, fixadas
+  pelo contrato daquela rota e não pela tabela de transições, que continua sendo só da API.
+
+Uma consequência de projeto que vale registrar: `requiresComment` é preenchido pelo estado da
+tela e **fica desatualizado sem JavaScript**. Onde a exigência é decisiva ela não depende mais
+desse campo; onde ele é apenas conveniência, a API segue como juíza. É a degradação certa —
+sem JS a tela avisa um pouco menos cedo, mas nunca grava o que não devia.
+
+Verificado contra a API no ar, percorrendo os formulários **sem JavaScript**: assumir triagem →
+encaminhar com prioridade → atribuir → encerrar, conferindo situação, prioridade, responsável e
+histórico no banco a cada passo. O agente que não é o responsável não vê a seção de
+encerramento e vê o motivo; encerrar sem comentário é recusado junto ao campo; a ocorrência
+encerrada diz que a situação não muda mais e mantém o histórico aberto; o andamento marcado
+como visível aparece na consulta pública por protocolo, que continua sem vazar dado pessoal.
+
 ## 3. O que está pronto, em detalhe
 
 ### 3.1 Infraestrutura e ambiente
@@ -480,7 +542,7 @@ de demonstração sem fotos continua servindo.
 | Aplicação | Versões | O que já roda |
 |---|---|---|
 | API | NestJS 12, Prisma 7.10, TypeScript 6, Vitest 4.1 | As 27 rotas do contrato, com prefixo `/api/v1`, CORS por `CORS_ORIGINS`, `ValidationPipe` com `whitelist` e `forbidNonWhitelisted`, e Swagger em `/api/docs` |
-| Portal de Operações | Next.js 16.3, React 19.2, Tailwind 4, Leaflet 1.9 | Sessão e navegação (O1); lista e detalhe da ocorrência (O2) |
+| Portal de Operações | Next.js 16.3, React 19.2, Tailwind 4, Leaflet 1.9 | Sessão e navegação (O1); lista e detalhe (O2); atendimento (O3) |
 | Portal do Cidadão | Next.js 16.3, React 19.2, Tailwind 4, Leaflet 1.9 | Página inicial do scaffold |
 
 Dependências de domínio da API já instaladas: `@nestjs/jwt`, `passport-jwt`, `bcrypt`,
@@ -544,31 +606,21 @@ A documentação é verificada por conferências que qualquer alteração futura
 
 Registrado explicitamente, para que a ausência não seja confundida com esquecimento:
 
-- **nenhuma ação de atendimento** — assumir e concluir a triagem, atribuir responsável,
-  alterar a situação e registrar andamento são a etapa O3; o detalhe já mostra tudo, mas não
-  altera nada;
 - **nenhum painel e nenhum mapa de conjunto** — `/` e `/mapa` seguem como destinos da
   navegação, sem conteúdo próprio (etapas O4 e O5); `/agentes` idem (O6);
 - **nenhuma tela no Portal do Cidadão**, e nenhum componente `<LocationPicker>`;
 - **nenhum teste automatizado nos portais** — a verificação de O1 e O2 foi feita contra a
   aplicação no ar, e o plano não prevê suíte de testes de interface;
-- **o `RF-OP-30` só pela metade** — o aviso de por que um agente não pode agir já aparece, mas
-  as ações em si são a etapa O3.
+- **nenhuma exportação em CSV** — `RF-OP-24` é a etapa O7.
 
 ## 5. Próximo passo
 
-**Etapa O3 — Atendimento**, do
-[plano de implementação](plano-de-implementacao.md#o3-atendimento): a triagem em duas etapas, a
-atribuição de responsável, a mudança de situação oferecendo só as transições válidas, o
-registro de andamento com escolha de visibilidade e a confirmação nas ações difíceis de
-reverter.
+**Etapa O4 — Painel**, do [plano de implementação](plano-de-implementacao.md#o4-painel): os
+indicadores de `GET /dashboard/summary` com destaque para as ocorrências críticas e altas em
+aberto, a distribuição por bairro, o volume por período e o recorte de cada indicador
+conduzindo à lista já filtrada.
 
-A primeira decisão de O3 é a que ficou em aberto: **o portal espelha a tabela de transições da
-API, ou a API passa a devolvê-la no detalhe da ocorrência?** Espelhar duplica uma regra que já
-divergiu uma vez neste projeto — foi a verificação cruzada que descobriu a situação `TRIAGE`
-inalcançável.
-
-**O4, O5, O6 e C1 também já estão liberadas** e podem correr em paralelo; pelo
+**O5, O6 e C1 também já estão liberadas** e podem correr em paralelo; pelo
 [plano](plano-de-implementacao.md#2-ordem-adotada-e-por-quê), o Portal de Operações vem
 primeiro.
 

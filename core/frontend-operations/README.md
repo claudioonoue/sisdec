@@ -50,6 +50,12 @@ use `lib/enum-label.ts` ou o `useMetadata()` de `features/metadata/`.
 aparecer em `src/types/`; os rótulos em pt-BR vêm de `GET /metadata` e `GET /metadata/internal`
 (`RNF-OP-45`).
 
+**Nem cópia do ciclo de vida.** Quais ações o detalhe oferece vem de `availableTransitions`, no
+`GET /reports/:id`, já resolvido para o agente autenticado
+([decisão 16](../../docs/arquitetura.md#8-transições-oferecidas-pela-api-decisão-16)). Ao
+acrescentar uma ação de atendimento, pergunte antes se ela é transição de situação: se for, a
+API decide se aparece.
+
 **O Leaflet** manipula o DOM e não funciona na renderização do servidor. Os componentes de
 mapa devem ser importados com `dynamic(..., { ssr: false })` e ficar isolados em
 `src/components/map/`, de modo que nenhuma tela importe `leaflet` diretamente

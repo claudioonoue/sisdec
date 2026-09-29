@@ -98,7 +98,8 @@ executados dentro da respectiva pasta.
 | 12 | Enumerações, rótulos em pt-BR e limites de upload servidos pela API em `GET /metadata` (público) e `GET /metadata/internal` (autenticado); os portais **não** mantêm listas nem mapas de tradução fixos | Definida |
 | 13 | Rotas dedicadas **sem paginação** para o mapa (`GET /reports/map`, teto de 500) e para a exportação (`GET /reports/export`), em vez de varrer páginas de `GET /reports` | Definida |
 | 14 | Agente de perfil `AGENT` altera a situação **apenas** da ocorrência que lhe foi atribuída; anexos do cidadão são aceitos somente enquanto a ocorrência está em `RECEIVED` | Definida |
-| 15 | O token JWT do Portal de Operações fica em **cookie `httpOnly`** e o portal fala com a API **pelo servidor do Next** — nunca pelo navegador ([detalhe](#sessão-do-portal-de-operações-decisão-15)) | Definida |
+| 15 | O token JWT do Portal de Operações fica em **cookie `httpOnly`** e o portal fala com a API **pelo servidor do Next** — nunca pelo navegador ([detalhe](#7-sessão-do-portal-de-operações-decisão-15)) | Definida |
+| 16 | As transições de situação disponíveis são **calculadas pela API** e devolvidas no detalhe da ocorrência; o portal não mantém cópia do ciclo de vida ([detalhe](#8-transições-oferecidas-pela-api-decisão-16)) | Definida |
 
 ---
 
@@ -185,7 +186,45 @@ O Portal do Cidadão não é afetado: ele não autentica ninguém.
 
 ---
 
-## 8. Requisitos funcionais e não funcionais
+## 8. Transições oferecidas pela API (decisão 16)
+
+O [RF-OP-30](frontend-operations/requisitos-funcionais.md) exige que o detalhe ofereça
+**apenas** as ações compatíveis com a situação da ocorrência e com o perfil de quem olha.
+Decidir isso tem quatro entradas: a aresta existe na
+[tabela de transições](backend/modelo-de-dados.md#4-ciclo-de-vida-da-ocorrência); o perfil
+consta entre os autorizados; se o perfil é `AGENT`, ele é o responsável; e a transição exige
+comentário.
+
+As quatro viviam só na API. As opções eram o portal manter uma cópia da tabela, ou a API
+passar a dizer. **Escolhemos a segunda**, e `GET /reports/:id` devolve `availableTransitions`
+(`RF-API-72`), já resolvida para quem pediu.
+
+Três razões:
+
+- **esta tabela já divergiu aqui.** Foi a verificação cruzada que encontrou a situação
+  `TRIAGE` inalcançável, porque o ciclo de vida documentado e o contrato discordavam — o achado
+  que gerou a [decisão 11](#5-decisões-técnicas-registradas). Duas cópias vivas divergiriam de
+  novo, e a segunda seria descoberta por um agente diante de um botão que responde `403`;
+- **a [decisão 12](#5-decisões-técnicas-registradas) já fixara o princípio** um nível abaixo:
+  os portais não guardam listas nem mapas de tradução das enumerações, eles perguntam. O ciclo
+  de vida é o mesmo caso, com mais consequência;
+- **copiar a tabela seria copiar junto uma regra de autorização** — a do responsável. O
+  `RNF-OP-14` diz que restrição de tela é conveniência e nunca proteção, e isso continua
+  valendo; o que se evita é a conveniência **discordar** da proteção em silêncio.
+
+Na API, a conferência de perfil e a do responsável viraram predicados nomeados, usados tanto
+pela listagem quanto pela execução — uma implementação, não duas que podem discordar. Um teste
+unitário afirma que elas concordam em toda combinação de situação, perfil e atribuição, e um
+teste e2e afirma a propriedade da qual o portal depende: **o que é oferecido é aceito, e o que
+não é oferecido é recusado**.
+
+Duas ações de atendimento **não** são transição de situação e continuam decididas no portal:
+atribuir responsável (coordenação) e registrar andamento (todos). São uma linha cada, fixadas
+pelo contrato de cada rota, e sem histórico de divergência.
+
+---
+
+## 9. Requisitos funcionais e não funcionais
 
 Os requisitos abaixo valem para o sistema como um todo. O detalhamento — com identificador,
 prioridade e forma de verificação — está nos documentos de cada aplicação:

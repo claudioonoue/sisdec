@@ -2,9 +2,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { MapPanel } from '@/components/map/map-panel';
-import { Alert } from '@/components/ui/alert';
 import { PageHeader } from '@/components/ui/page-header';
-import { PendingStage } from '@/components/ui/pending-stage';
+import { getAssignableAgents } from '@/lib/agents';
 import { ApiError } from '@/lib/api-error';
 import { apiOrigin } from '@/lib/env';
 import { labelFor } from '@/lib/enum-label';
@@ -12,6 +11,7 @@ import { formatDateTime } from '@/lib/format';
 import { getMetadata } from '@/lib/metadata';
 import { getReport } from '@/lib/reports';
 import { requireAgent } from '@/lib/session';
+import { CarePanel } from '@/features/reports/care-panel';
 import { PriorityBadge, StatusBadge } from '@/features/reports/report-badges';
 import { ReportAttachments } from '@/features/reports/report-attachments';
 import { ReportHistory } from '@/features/reports/report-history';
@@ -44,7 +44,10 @@ export default async function ReportDetailPage({
     throw error;
   }
 
-  const portalMetadata = await getMetadata();
+  const [portalMetadata, assignableAgents] = await Promise.all([
+    getMetadata(),
+    getAssignableAgents(agent.role),
+  ]);
   const isAssignee = report.assignedTo?.id === agent.id;
 
   return (
@@ -165,24 +168,7 @@ export default async function ReportDetailPage({
           </Card>
 
           <Card title="Atendimento">
-            <PendingStage
-              stage="O3"
-              summary="Assumir e concluir a triagem, atribuir responsável, alterar a situação e registrar andamento são construídos na etapa O3 do plano de implementação."
-            />
-            {/*
-              RF-OP-64: o motivo de um agente não poder agir precisa estar à
-              vista, e não ser deduzido da ausência de botões. O aviso já
-              aparece aqui, antes das ações existirem.
-            */}
-            {report.assignedTo && !isAssignee ? (
-              <div className="mt-3">
-                <Alert tone="info">
-                  Esta ocorrência está sob responsabilidade de {report.assignedTo.name}. Um agente
-                  só altera a situação das ocorrências atribuídas a si; coordenação e administração
-                  alteram qualquer uma.
-                </Alert>
-              </div>
-            ) : null}
+            <CarePanel report={report} agent={agent} assignableAgents={assignableAgents} />
           </Card>
         </div>
       </div>

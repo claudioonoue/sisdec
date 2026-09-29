@@ -47,6 +47,48 @@ export interface ReportUpdateEntry {
   agent: AgentSummary;
 }
 
+/**
+ * Endpoint que executa uma transição, relativo a `/reports/:id`.
+ * Valor do contrato da API, e por isso declarado aqui (RNF-OP-45).
+ */
+export type TransitionOwner = 'triage/start' | 'triage' | 'status';
+
+/**
+ * Transição que o agente autenticado pode executar agora (RF-API-72).
+ *
+ * A lista vem pronta da API, resolvida para quem perguntou. O portal **não**
+ * mantém cópia da tabela de transições: ele oferece o que recebe
+ * ([decisão 16](../../../../docs/arquitetura.md#8-transições-oferecidas-pela-api-decisão-16)).
+ */
+export interface AvailableTransition {
+  to: ReportStatus;
+  owner: TransitionOwner;
+  requiresComment: boolean;
+}
+
+/**
+ * Corpo de `PATCH /reports/:id/triage`. O desfecho é vocabulário do próprio
+ * endpoint, e não da tabela de transições: `ACCEPT` leva a `IN_PROGRESS` e
+ * `REJECT` a `REJECTED`.
+ */
+export const TRIAGE_OUTCOME_BY_STATUS = {
+  IN_PROGRESS: 'ACCEPT',
+  REJECTED: 'REJECT',
+} as const satisfies Partial<Record<ReportStatus, string>>;
+
+export type TriageOutcome = (typeof TRIAGE_OUTCOME_BY_STATUS)[keyof typeof TRIAGE_OUTCOME_BY_STATUS];
+
+export function triageOutcomeFor(status: ReportStatus): TriageOutcome | undefined {
+  return (TRIAGE_OUTCOME_BY_STATUS as Record<string, TriageOutcome>)[status];
+}
+
+/**
+ * O desfecho que encaminha a ocorrência ao atendimento — o único que exige
+ * prioridade. Exportado como constante para que a comparação não espalhe o
+ * literal pelas telas e pelas ações.
+ */
+export const FORWARDING_OUTCOME: TriageOutcome = TRIAGE_OUTCOME_BY_STATUS.IN_PROGRESS;
+
 /** Detalhe completo — `GET /reports/:id`. */
 export interface ReportDetail extends ReportListItem {
   description: string;
@@ -59,6 +101,7 @@ export interface ReportDetail extends ReportListItem {
   attachments: ReportAttachment[];
   updates: ReportUpdateEntry[];
   suggestedPriority: Priority | null;
+  availableTransitions: AvailableTransition[];
 }
 
 /**
