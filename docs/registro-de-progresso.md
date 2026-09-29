@@ -6,7 +6,7 @@ O que já foi construído no SISDEC, o que ainda não existe e qual é o próxim
 > [plano de implementação](plano-de-implementacao.md). Registra **estado**, não intenção —
 > um item só é marcado como pronto quando está verificado e commitado.
 
-Última atualização: **29 de setembro de 2026** — etapas B0 e B1 concluídas.
+Última atualização: **29 de setembro de 2026** — etapas B0, B1 e B2 concluídas.
 
 ---
 
@@ -23,10 +23,11 @@ O que já foi construído no SISDEC, o que ainda não existe e qual é o próxim
 | Modelo de dados no Prisma | ✅ 5 entidades, 5 enumerações e a primeira migração aplicada |
 | Fundação da API (etapa B0) | ✅ Concluída e verificada |
 | Metadados públicos (etapa B1) | ✅ Concluída e verificada |
-| **Código de domínio da API** | ⬜ 3 das 25 rotas no ar; nenhum módulo de negócio |
+| Autenticação e agentes (etapa B2) | ✅ Concluída e verificada |
+| **Ocorrências** | ⬜ O núcleo do sistema ainda não existe — 9 das 25 rotas no ar |
 | **Telas dos portais** | ⬜ Apenas a página inicial do scaffold |
 
-Em uma frase: **a especificação está fechada e a API já serve os metadados que destravam o Portal do Cidadão.**
+Em uma frase: **a API já autentica agentes e controla acesso por perfil; falta o núcleo — as ocorrências.**
 
 ## 2. Linha do tempo
 
@@ -96,11 +97,44 @@ Conforme o [plano](plano-de-implementacao.md#b1-metadados-públicos).
 - 10 testes unitários e 6 e2e novos; os rótulos conferem exatamente com os exemplos de
   [api.md](backend/api.md), sem necessidade de alterar o contrato.
 
+### 29 de setembro de 2026 — etapa B2: autenticação, agentes e metadados internos
+
+Conforme o [plano](plano-de-implementacao.md#b2-autenticação-agentes-e-metadados-internos).
+
+- `POST /auth/login` e `GET /auth/me`, com JWT assinado por `JWT_SECRET` e validade
+  `JWT_EXPIRES_IN`.
+- CRUD de agentes restrito ao administrador, com `409` em e-mail repetido, e-mail normalizado
+  em minúsculas e desativação em vez de exclusão.
+- `GET /metadata/internal` com `priorities` e `agentRoles`, exigindo autenticação.
+- `seed.ts` idempotente criando o agente administrador — `npx prisma db seed` agora funciona,
+  o que o README do backend já instruía.
+- Senhas apenas como hash bcrypt de custo 10; `passwordHash` nunca lido do banco nas rotas que
+  devolvem agente, por `select` explícito — e não removido depois na serialização.
+- 31 testes unitários e 17 e2e novos; a suíte e2e cria e apaga os seus próprios agentes, e foi
+  rodada duas vezes seguidas com o mesmo resultado.
+
+Três decisões que valem registro:
+
+- **O `JwtAuthGuard` é global**: o padrão é rota protegida, e a rota pública se declara com
+  `@Public()`. Esquecer o decorador fecha a rota, em vez de abri-la.
+- **Os perfis não são hierárquicos no guarda**: cada rota lista quem pode acessá-la. A
+  hierarquia da documentação é convenção de produto; embuti-la no guarda esconderia quem de
+  fato tem acesso a quê.
+- **A estratégia JWT consulta o banco** em vez de confiar apenas no conteúdo do token, então
+  desativar um agente revoga o acesso na mesma hora, sem esperar a expiração. Há teste e2e
+  cobrindo exatamente isso.
+
+Um obstáculo técnico resolvido no caminho: o cliente do Prisma 7 é gerado como fonte
+TypeScript com especificadores `.js`, que só o `tsc` resolve — o `seed.ts` não rodava pelo
+Node. Configurei `importFileExtension = "ts"` no gerador e liguei
+`rewriteRelativeImportExtensions` no `tsconfig.json`, então o mesmo código serve ao build
+(que emite `.js`) e à execução direta pelo Node.
+
 ### Em andamento — ainda não commitado
 
 - [Plano de implementação](plano-de-implementacao.md), com 20 etapas.
 - Este registro de progresso.
-- Tudo o que a etapa B1 produziu.
+- Tudo o que a etapa B2 produziu.
 
 ## 3. O que está pronto, em detalhe
 
@@ -185,18 +219,19 @@ Registrado explicitamente, para que a ausência não seja confundida com esqueci
 - **nenhum módulo de domínio na API** — `auth`, `agents`, `reports`, `report-updates`,
   `attachments` e `dashboard` ainda não existem; das 25 rotas do contrato, só `GET /health`
   está no ar;
-- **nenhum dado** no banco: as tabelas existem, mas não há `seed` nem agente administrador;
 - **nenhuma tela** nos dois portais além da página inicial gerada pelo `create-next-app`;
 - **nenhum cliente HTTP** nos portais, nenhum tipo compartilhado com a API.
 
 ## 5. Próximo passo
 
-**Etapa B2 — Autenticação, agentes e metadados internos**, do
-[plano de implementação](plano-de-implementacao.md#b2-autenticação-agentes-e-metadados-internos):
-`AgentsModule` com CRUD restrito ao admin e hash bcrypt, `AuthModule` com login JWT e guardas
-de perfil, `seed.ts` com o agente administrador e `GET /metadata/internal`.
+**Etapa B3 — Registro e consulta pública de ocorrências**, do
+[plano de implementação](plano-de-implementacao.md#b3-registro-e-consulta-pública-de-ocorrências):
+`POST /reports`, o gerador de protocolo `SISDEC-AAAA-NNNNNN` com sequência anual,
+`GET /reports/protocol/:protocolNumber` sem dado pessoal, e o *rate limiting* das rotas
+públicas.
 
-Ela destrava a etapa O1 do Portal de Operações. O caminho crítico segue em **B3 → B5 → B6**.
+É o núcleo do sistema e o próximo trecho do caminho crítico. A etapa O1 do Portal de Operações
+já está destravada por B2, e pode correr em paralelo.
 
 ## 6. Como manter este documento
 

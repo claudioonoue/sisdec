@@ -61,6 +61,9 @@ e uma pasta `dto/` com os objetos de entrada e saída validados.
 | `STORAGE_DRIVER` | Implementação de armazenamento de anexos (`local` nesta versão) | `local` |
 | `UPLOAD_DIR` | Pasta de armazenamento dos anexos quando `STORAGE_DRIVER=local` | `./uploads` |
 | `MAX_UPLOAD_SIZE_MB` | Tamanho máximo por anexo | `10` |
+| `SEED_ADMIN_EMAIL` | E-mail do administrador criado pelo seed (opcional) | `admin@sisdec.local` |
+| `SEED_ADMIN_NAME` | Nome do administrador criado pelo seed (opcional) | `Administrador do SISDEC` |
+| `SEED_ADMIN_PASSWORD` | Senha inicial do administrador (opcional; sem ela, o seed usa uma senha padrão e avisa) | — |
 | `CORS_ORIGINS` | Origens permitidas, separadas por vírgula | `http://localhost:3001,http://localhost:3002` |
 
 ## 4. Como executar (após o scaffold)

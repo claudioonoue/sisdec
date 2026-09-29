@@ -1,6 +1,8 @@
 import { Controller, Get } from '@nestjs/common';
-import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Public } from '../../common/decorators/public.decorator.js';
 import {
+  InternalMetadataDto,
   PublicMetadataDto,
   ReportTypeOptionDto,
 } from './dto/metadata.dto.js';
@@ -11,6 +13,7 @@ import { MetadataService } from './metadata.service.js';
 export class MetadataController {
   constructor(private readonly metadata: MetadataService) {}
 
+  @Public()
   @Get('metadata')
   @ApiOperation({
     summary: 'Enumerações públicas e limites de upload',
@@ -23,6 +26,7 @@ export class MetadataController {
     return this.metadata.getPublicMetadata();
   }
 
+  @Public()
   @Get('report-types')
   @ApiOperation({
     summary: 'Atalho para metadata.reportTypes',
@@ -31,5 +35,17 @@ export class MetadataController {
   @ApiOkResponse({ type: [ReportTypeOptionDto] })
   getReportTypes(): ReportTypeOptionDto[] {
     return this.metadata.getReportTypes();
+  }
+
+  @Get('metadata/internal')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Enumerações de uso interno',
+    description:
+      'Prioridades e perfis. Exige autenticação: o Portal do Cidadão não consome esta rota.',
+  })
+  @ApiOkResponse({ type: InternalMetadataDto })
+  getInternalMetadata(): InternalMetadataDto {
+    return this.metadata.getInternalMetadata();
   }
 }

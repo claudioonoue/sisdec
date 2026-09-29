@@ -5,6 +5,11 @@
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
+  // O cliente é gerado como fonte TypeScript. Com especificadores .ts, ele roda
+  // tanto pelo tsc (que os reescreve para .js ao emitir) quanto diretamente pelo
+  // Node, que remove tipos mas não resolve .js para .ts — é o que permite ao
+  // prisma/seed.ts importar o cliente sem uma etapa de build.
+  importFileExtension = "ts"
 }
 
 datasource db {

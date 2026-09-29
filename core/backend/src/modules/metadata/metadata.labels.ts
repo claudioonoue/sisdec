@@ -1,4 +1,6 @@
 import {
+  type AgentRole,
+  type Priority,
   ReportCategory,
   ReportStatus,
   ReportType,
@@ -44,6 +46,20 @@ export const REPORT_STATUS_LABELS: Record<ReportStatus, string> = {
   RESOLVED: 'Resolvida',
   REJECTED: 'Improcedente',
   CANCELLED: 'Cancelada',
+};
+
+/** Enumerações de uso interno, servidas apenas a agentes autenticados. */
+export const PRIORITY_LABELS: Record<Priority, string> = {
+  LOW: 'Baixa',
+  MEDIUM: 'Média',
+  HIGH: 'Alta',
+  CRITICAL: 'Crítica',
+};
+
+export const AGENT_ROLE_LABELS: Record<AgentRole, string> = {
+  AGENT: 'Agente',
+  COORDINATOR: 'Coordenador',
+  ADMIN: 'Administrador',
 };
 
 /**

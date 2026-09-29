@@ -7,6 +7,8 @@ export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
     path: "prisma/migrations",
+    // O Node 24 remove os tipos nativamente, então o seed roda direto do .ts.
+    seed: "node prisma/seed.ts",
   },
   datasource: {
     url: process.env["DATABASE_URL"],

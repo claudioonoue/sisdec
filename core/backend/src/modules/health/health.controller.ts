@@ -1,6 +1,7 @@
 import { Controller, Get, HttpStatus, Res } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
+import { Public } from '../../common/decorators/public.decorator.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 
 interface HealthBody {
@@ -13,6 +14,7 @@ interface HealthBody {
 export class HealthController {
   constructor(private readonly prisma: PrismaService) {}
 
+  @Public()
   @Get()
   @ApiOperation({ summary: 'Estado da aplicação e da conexão com o banco de dados' })
   @ApiResponse({ status: 200, description: 'Aplicação e banco disponíveis' })

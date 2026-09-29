@@ -1,5 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import type {
+  AgentRole,
+  Priority,
   ReportCategory,
   ReportStatus,
   ReportType,
@@ -51,4 +53,18 @@ export class PublicMetadataDto {
 
   @ApiProperty({ type: UploadLimitsDto })
   upload!: UploadLimitsDto;
+}
+
+/**
+ * Resposta de `GET /metadata/internal` — enumerações de uso interno.
+ *
+ * Separadas das públicas porque `priorities` é classificação operacional, não
+ * exposta ao cidadão, e `agentRoles` descreve a estrutura interna de acesso.
+ */
+export class InternalMetadataDto {
+  @ApiProperty({ type: [EnumOptionDto] })
+  priorities!: EnumOptionDto<Priority>[];
+
+  @ApiProperty({ type: [EnumOptionDto] })
+  agentRoles!: EnumOptionDto<AgentRole>[];
 }

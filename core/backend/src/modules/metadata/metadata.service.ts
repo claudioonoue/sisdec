@@ -3,17 +3,22 @@ import { ConfigService } from '@nestjs/config';
 import { ACCEPTED_MIME_TYPES, MAX_FILES_PER_REQUEST } from '../../common/upload.constants.js';
 import type { EnvironmentVariables } from '../../config/env.validation.js';
 import {
+  AgentRole,
+  Priority,
   ReportCategory,
   ReportStatus,
   ReportType,
 } from '../../generated/prisma/enums.js';
 import type {
   EnumOptionDto,
+  InternalMetadataDto,
   PublicMetadataDto,
   ReportTypeOptionDto,
   UploadLimitsDto,
 } from './dto/metadata.dto.js';
 import {
+  AGENT_ROLE_LABELS,
+  PRIORITY_LABELS,
   REPORT_CATEGORY_LABELS,
   REPORT_STATUS_LABELS,
   REPORT_TYPE_LABELS,
@@ -37,6 +42,19 @@ export class MetadataService {
       reportCategories: this.getReportCategories(),
       reportStatuses: this.getReportStatuses(),
       upload: this.getUploadLimits(),
+    };
+  }
+
+  getInternalMetadata(): InternalMetadataDto {
+    return {
+      priorities: Object.values(Priority).map((value) => ({
+        value,
+        label: PRIORITY_LABELS[value],
+      })),
+      agentRoles: Object.values(AgentRole).map((value) => ({
+        value,
+        label: AGENT_ROLE_LABELS[value],
+      })),
     };
   }
 
