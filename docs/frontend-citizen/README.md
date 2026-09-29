@@ -88,6 +88,13 @@ cp .env.example .env.local
 npm run dev                   # http://localhost:3002 (porta já fixada no script)
 ```
 
-## 7. Situação
+## 7. Documentos relacionados
+
+- [Requisitos funcionais](requisitos-funcionais.md) — `RF-CID-nn`
+- [Requisitos não funcionais](requisitos-nao-funcionais.md) — `RNF-CID-nn`
+- [API REST](../backend/api.md)
+- [Arquitetura geral](../arquitetura.md)
+
+## 8. Situação
 
 🚧 Pasta criada, aplicação ainda não gerada.

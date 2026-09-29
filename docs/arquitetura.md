@@ -94,6 +94,10 @@ executados dentro da respectiva pasta.
 | 08 | **Leaflet** com tiles do OpenStreetMap para os mapas, isolado em componentes próprios para permitir a troca por Google Maps | Definida |
 | 09 | Sem notificação ativa nesta versão — o acompanhamento é feito **apenas pela consulta por protocolo** | Definida |
 | 10 | **Execução local** (`localhost`) nesta etapa, com o PostgreSQL em contêiner Docker; publicação na internet fica para uma etapa futura | Definida |
+| 11 | Triagem em **duas etapas** (assumir e concluir), com `TRIAGE` como estado real e a improcedência como saída da triagem — e não do endpoint de situação | Definida |
+| 12 | Enumerações, rótulos em pt-BR e limites de upload servidos pela API em `GET /metadata` (público) e `GET /metadata/internal` (autenticado); os portais **não** mantêm listas nem mapas de tradução fixos | Definida |
+| 13 | Rotas dedicadas **sem paginação** para o mapa (`GET /reports/map`, teto de 500) e para a exportação (`GET /reports/export`), em vez de varrer páginas de `GET /reports` | Definida |
+| 14 | Agente de perfil `AGENT` altera a situação **apenas** da ocorrência que lhe foi atribuída; anexos do cidadão são aceitos somente enquanto a ocorrência está em `RECEIVED` | Definida |
 
 ---
 
@@ -117,6 +121,8 @@ interface StorageService {
 ```
 
 - `LocalStorageService` grava em `UPLOAD_DIR` e é a implementação usada no trabalho;
+- `remove()` faz parte da interface para que a troca por S3 não exija alterá-la, mas
+  **nenhum endpoint desta versão o utiliza**: não há exclusão de anexo no escopo atual;
 - uma futura `S3StorageService` implementa a mesma interface;
 - a escolha é feita **uma única vez**, no provider do `AttachmentsModule`, a partir da
   variável `STORAGE_DRIVER`;
@@ -142,7 +148,16 @@ interface StorageService {
 
 ---
 
-## 7. Requisitos não funcionais
+## 7. Requisitos funcionais e não funcionais
+
+Os requisitos abaixo valem para o sistema como um todo. O detalhamento — com identificador,
+prioridade e forma de verificação — está nos documentos de cada aplicação:
+
+| Aplicação | Funcionais | Não funcionais |
+|---|---|---|
+| Backend (API) | [RF-API](backend/requisitos-funcionais.md) | [RNF-API](backend/requisitos-nao-funcionais.md) |
+| Portal de Operações | [RF-OP](frontend-operations/requisitos-funcionais.md) | [RNF-OP](frontend-operations/requisitos-nao-funcionais.md) |
+| Portal do Cidadão | [RF-CID](frontend-citizen/requisitos-funcionais.md) | [RNF-CID](frontend-citizen/requisitos-nao-funcionais.md) |
 
 - **Responsividade**: o portal do cidadão será usado majoritariamente por celular.
 - **Acessibilidade**: contraste adequado, navegação por teclado e textos alternativos.

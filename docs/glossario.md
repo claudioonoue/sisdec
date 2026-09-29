@@ -11,7 +11,7 @@ Termos do domínio utilizados no SISDEC. O nome em inglês é o que aparece no c
 | Tipo de ocorrência | `ReportType` | Assunto da ocorrência: alagamento, deslizamento, árvore em risco, estrutura danificada, incêndio, animal selvagem, entre outros. Lista completa no [modelo de dados](backend/modelo-de-dados.md#3-enumerações). |
 | Situação | `ReportStatus` | Estágio atual do atendimento (recebida, em triagem, em atendimento, resolvida, improcedente, cancelada). |
 | Prioridade | `Priority` | Grau de urgência atribuído pelo agente na triagem (baixa, média, alta, crítica). |
-| Triagem | *triage* | Análise inicial feita por um agente: confirma o tipo, define a prioridade e encaminha a ocorrência. |
+| Triagem | *triage* | Análise inicial feita por um coordenador, em duas etapas: **assumir** a triagem (a ocorrência passa a `TRIAGE`) e **concluir**, confirmando o tipo e definindo a prioridade — encaminhando a ocorrência para atendimento ou declarando-a improcedente. |
 | Andamento / Histórico | `ReportUpdate` | Cada registro de mudança de situação ou observação feita sobre uma ocorrência. |
 | Anexo | `Attachment` | Foto ou arquivo enviado junto à ocorrência. |
 | Cidadão | `Citizen` | Pessoa que registra a ocorrência. Pode se identificar ou permanecer anônima. |

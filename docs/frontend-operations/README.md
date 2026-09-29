@@ -16,7 +16,7 @@ Servidores da Defesa Civil, em três perfis:
 
 | Perfil | Permissões |
 |---|---|
-| **Agente** | Visualiza ocorrências, registra andamentos e conclui as que lhe foram atribuídas |
+| **Agente** | Visualiza todas as ocorrências, registra andamentos em qualquer uma e altera a situação **apenas das que lhe foram atribuídas** |
 | **Coordenador** | Tudo do agente + triagem, definição de prioridade e atribuição de responsáveis |
 | **Administrador** | Tudo do coordenador + gestão de contas de agentes |
 
@@ -28,7 +28,7 @@ Servidores da Defesa Civil, em três perfis:
 | Painel | `/` | Indicadores: ocorrências abertas, por prioridade, por situação e por tipo |
 | Lista de ocorrências | `/ocorrencias` | Tabela com filtros (situação, tipo, prioridade, bairro, período, responsável) e busca por protocolo |
 | Detalhe da ocorrência | `/ocorrencias/[id]` | Relato, fotos, mapa, dados do cidadão, histórico e ações de atendimento |
-| Triagem | `/ocorrencias/[id]` (ação) | Confirma o tipo, define a prioridade e encaminha |
+| Triagem | `/ocorrencias/[id]` (ação) | Assume a triagem e, ao concluir, confirma o tipo, define a prioridade e encaminha ou marca como improcedente |
 | Mapa | `/mapa` | Ocorrências abertas plotadas geograficamente (Leaflet + OpenStreetMap), com cor por prioridade |
 | Agentes | `/agentes` | Cadastro e desativação de contas (apenas administrador) |
 
@@ -37,10 +37,13 @@ Servidores da Defesa Civil, em três perfis:
 ```
 login ─> painel ─> lista filtrada ─> detalhe da ocorrência
                                           │
-                                          ├─ triagem (tipo + prioridade)
+                                          ├─ assumir a triagem
+                                          ├─ concluir a triagem
+                                          │    ├─ encaminhar (tipo + prioridade)
+                                          │    └─ marcar improcedente
                                           ├─ atribuir responsável
                                           ├─ registrar andamento
-                                          └─ concluir / marcar improcedente
+                                          └─ concluir o atendimento
 ```
 
 ## 4. Estrutura de pastas prevista
@@ -79,6 +82,13 @@ cp .env.example .env.local
 npm run dev                   # http://localhost:3001 (porta já fixada no script)
 ```
 
-## 7. Situação
+## 7. Documentos relacionados
+
+- [Requisitos funcionais](requisitos-funcionais.md) — `RF-OP-nn`
+- [Requisitos não funcionais](requisitos-nao-funcionais.md) — `RNF-OP-nn`
+- [API REST](../backend/api.md)
+- [Arquitetura geral](../arquitetura.md)
+
+## 8. Situação
 
 🚧 Pasta criada, aplicação ainda não gerada.

@@ -49,10 +49,27 @@ Cidadão                        API (SISDEC)                    Agente
   - [Visão geral](backend/README.md)
   - [Modelo de dados](backend/modelo-de-dados.md)
   - [API REST](backend/api.md)
+  - [Requisitos funcionais](backend/requisitos-funcionais.md)
+  - [Requisitos não funcionais](backend/requisitos-nao-funcionais.md)
 - **Portal de Operações (agentes)**
   - [Visão geral](frontend-operations/README.md)
+  - [Requisitos funcionais](frontend-operations/requisitos-funcionais.md)
+  - [Requisitos não funcionais](frontend-operations/requisitos-nao-funcionais.md)
 - **Portal do Cidadão**
   - [Visão geral](frontend-citizen/README.md)
+  - [Requisitos funcionais](frontend-citizen/requisitos-funcionais.md)
+  - [Requisitos não funcionais](frontend-citizen/requisitos-nao-funcionais.md)
+
+### Requisitos
+
+Cada aplicação tem os seus requisitos em dois documentos separados — funcionais (`RF`) e
+não funcionais (`RNF`) —, com identificadores próprios por aplicação:
+
+| Aplicação | Prefixo | Funcionais | Não funcionais |
+|---|---|---|---|
+| Backend (API) | `RF-API` / `RNF-API` | [requisitos-funcionais.md](backend/requisitos-funcionais.md) | [requisitos-nao-funcionais.md](backend/requisitos-nao-funcionais.md) |
+| Portal de Operações | `RF-OP` / `RNF-OP` | [requisitos-funcionais.md](frontend-operations/requisitos-funcionais.md) | [requisitos-nao-funcionais.md](frontend-operations/requisitos-nao-funcionais.md) |
+| Portal do Cidadão | `RF-CID` / `RNF-CID` | [requisitos-funcionais.md](frontend-citizen/requisitos-funcionais.md) | [requisitos-nao-funcionais.md](frontend-citizen/requisitos-nao-funcionais.md) |
 
 ---
 

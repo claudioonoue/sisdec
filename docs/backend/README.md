@@ -18,6 +18,8 @@ Consumida pelo Portal do Cidadão e pelo Portal de Operações.
 - Manter o histórico de andamentos de cada ocorrência;
 - Armazenar os anexos (fotos) enviados, em disco local, atrás de uma abstração que
   permite migrar para S3 sem alterar as regras de negócio;
+- Servir aos portais as enumerações, os seus rótulos em pt-BR e os limites de upload, de
+  modo que nenhuma dessas listas seja fixada no código das interfaces;
 - Fornecer números consolidados para o painel do Portal de Operações.
 
 ## 2. Estrutura de pastas prevista
@@ -78,6 +80,8 @@ npm run start:dev             # http://localhost:3000
 
 - [Modelo de dados](modelo-de-dados.md)
 - [API REST](api.md)
+- [Requisitos funcionais](requisitos-funcionais.md)
+- [Requisitos não funcionais](requisitos-nao-funcionais.md)
 - [Arquitetura geral](../arquitetura.md)
 
 ## 6. Situação

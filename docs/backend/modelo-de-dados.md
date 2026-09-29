@@ -15,7 +15,7 @@ Banco relacional **PostgreSQL**, acessado via **Prisma**.
                        │  type             │                   │
                        │  status           │                   │*
                        │  priority         │          ┌────────┴───────┐
-                       │  description      │*        1│  ReportUpdate  │
+                       │  description      │1        *│  ReportUpdate  │
                        │  address / lat/lng├─────────>│  (histórico)   │
                        └─────────┬─────────┘          └────────────────┘
                                  │1
@@ -37,14 +37,15 @@ Registro central do sistema.
 | `category` | Enum `ReportCategory` | Reclamação, sugestão, solicitação ou risco |
 | `type` | Enum `ReportType` | Assunto da ocorrência |
 | `status` | Enum `ReportStatus` | Situação atual |
-| `priority` | Enum `Priority` | Definida na triagem |
+| `priority` | Enum `Priority`? | Nula no registro; definida na triagem |
 | `description` | Text | Relato do cidadão |
 | `address` | String | Endereço informado |
 | `district` | String | Bairro |
 | `latitude` / `longitude` | Decimal | Opcionais |
 | `citizenId` | UUID? | Nulo quando o registro é anônimo |
 | `assignedToId` | UUID? | Agente responsável |
-| `createdAt` / `updatedAt` / `resolvedAt` | DateTime | |
+| `createdAt` / `updatedAt` | DateTime | |
+| `resolvedAt` | DateTime? | Nulo até a transição para `RESOLVED` |
 
 ### Citizen — cidadão
 Preenchido apenas quando a pessoa opta por se identificar.
@@ -72,15 +73,15 @@ Preenchido apenas quando a pessoa opta por se identificar.
 ### ReportUpdate — andamento
 Uma linha para cada mudança de situação ou observação registrada.
 
-| Campo | Tipo |
-|---|---|
-| `id` | UUID |
-| `reportId` | UUID |
-| `agentId` | UUID |
-| `fromStatus` / `toStatus` | Enum `ReportStatus`? |
-| `comment` | Text |
-| `visibleToCitizen` | Boolean |
-| `createdAt` | DateTime |
+| Campo | Tipo | Observações |
+|---|---|---|
+| `id` | UUID | |
+| `reportId` | UUID | |
+| `agentId` | UUID | Autor do andamento |
+| `fromStatus` / `toStatus` | Enum `ReportStatus`? | Nulos quando o andamento é apenas uma observação, sem mudança de situação |
+| `comment` | Text? | Obrigatório nas transições para `RESOLVED`, `REJECTED` e `CANCELLED` e nas observações; opcional nas demais transições |
+| `visibleToCitizen` | Boolean | Padrão `false` |
+| `createdAt` | DateTime | |
 
 ### Attachment — anexo
 
@@ -129,7 +130,7 @@ AgentRole       ADMIN | COORDINATOR | AGENT
 
 > **Sobre `ReportType`**: a lista é um `enum` do PostgreSQL, o que garante tipagem no
 > Prisma e impede valores inválidos, mas exige uma migração para incluir um novo tipo.
-> Como os frontends consultam os tipos pelo endpoint `GET /report-types` em vez de terem
+> Como os frontends consultam os tipos pelo endpoint `GET /metadata` em vez de terem
 > a lista fixa no código, trocar o enum por uma tabela `report_types` no futuro não altera
 > o contrato da API nem a interface.
 
@@ -151,7 +152,7 @@ AgentRole       ADMIN | COORDINATOR | AGENT
         prioridade e     │              ┌─────▼──────┐
         responsável      │              │  REJECTED  │
                     ┌────▼────────┐     └────────────┘
-                    │ IN_PROGRESS ├──────────────┐ cidadão/agente cancela
+                    │ IN_PROGRESS ├──────────────┐ agente cancela
                     └────┬────────┘              │
                          │ atendimento concluído │
                     ┌────▼─────┐           ┌─────▼──────┐
@@ -161,11 +162,37 @@ AgentRole       ADMIN | COORDINATOR | AGENT
 
 Toda transição gera um registro em `ReportUpdate`.
 
+Cada transição tem um endpoint responsável — nenhuma situação do enum fica inalcançável:
+
+| Transição | Endpoint | Perfis |
+|---|---|---|
+| — → `RECEIVED` | `POST /reports` | cidadão (sem autenticação) |
+| `RECEIVED` → `TRIAGE` | `PATCH /reports/:id/triage/start` | coordenador, admin |
+| `TRIAGE` → `IN_PROGRESS` | `PATCH /reports/:id/triage` (`outcome: ACCEPT`) | coordenador, admin |
+| `TRIAGE` → `REJECTED` | `PATCH /reports/:id/triage` (`outcome: REJECT`) | coordenador, admin |
+| `IN_PROGRESS` → `RESOLVED` | `PATCH /reports/:id/status` | responsável, coordenador, admin |
+| `IN_PROGRESS` → `CANCELLED` | `PATCH /reports/:id/status` | responsável, coordenador, admin |
+
+Qualquer transição fora desta tabela é recusada com `400`.
+
 ## 5. Regras de negócio
 
-1. O `protocolNumber` é gerado no momento do registro e nunca é alterado.
+1. O `protocolNumber` é gerado no momento do registro e nunca é alterado. A sequência
+   (`NNNNNN`) é reiniciada a cada ano, de modo que o código é único apenas em conjunto
+   com o ano (`AAAA`).
 2. Ocorrência anônima tem `citizenId` nulo — o acompanhamento se dá apenas por protocolo.
 3. Somente agentes autenticados alteram `status`, `priority` e `assignedToId`.
 4. `resolvedAt` é preenchido automaticamente na transição para `RESOLVED`.
 5. Andamentos com `visibleToCitizen = false` não aparecem na consulta pública.
 6. Agentes são desativados (`active = false`), nunca excluídos, para preservar o histórico.
+7. `priority` é nula enquanto a ocorrência não passa pela triagem; a partir de `IN_PROGRESS`
+   ela é sempre preenchida.
+8. A improcedência (`REJECTED`) só pode ser declarada a partir de `TRIAGE`, e exige
+   comentário — é a conclusão de uma análise, não uma recusa imediata do registro.
+9. A prioridade não é exposta na consulta pública por protocolo: é uma classificação
+   operacional interna.
+10. O agente de perfil `AGENT` só altera a situação da ocorrência em que consta como
+    `assignedToId`; coordenador e administrador alteram qualquer uma. Registrar observação no
+    histórico, porém, é permitido a qualquer agente autenticado.
+11. Anexos só são aceitos enquanto a ocorrência está em `RECEIVED` — a janela entre o registro
+    pelo cidadão e o início da triagem.
