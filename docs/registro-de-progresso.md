@@ -348,6 +348,34 @@ funciona **sem JavaScript**, com a senha errada devolvendo mensagem genérica e 
 e-mail digitado. Com a API desligada, as três telas mostram a mensagem de indisponibilidade —
 nenhuma em branco, nenhuma técnica.
 
+### 29 de setembro de 2026 — seed de demonstração
+
+Não é etapa do plano: é ferramenta de trabalho, criada porque as etapas O2 a O6 não podem ser
+construídas contra um banco vazio.
+
+- `prisma/seed-demo.ts` e `npm run seed:demo`, **separados** do `seed.ts`: aquele cria o
+  agente do primeiro acesso, que é dado de produção; este cria dado que só serve para
+  exercitar as telas. O de demonstração fica fora do `prisma7.config.ts`, então
+  `prisma db seed` nunca o executa.
+- Quatro contas — coordenador, dois agentes e um agente **inativo**. A segunda conta de agente
+  e a inativa não são enfeite: `RF-OP-64` exige um agente que **não** seja o responsável, e
+  `RF-OP-53` exige um inativo para distinguir na lista.
+- 14 ocorrências cobrindo as seis situações, as quatro prioridades, seis bairros, com e sem
+  coordenadas, identificadas e anônimas, espalhadas nos últimos 40 dias, com 24 andamentos.
+
+**Não apaga nada**, por duas razões. A primeira é a de sempre: um seed que limpa o banco
+apaga o trabalho de quem o roda por engano. A segunda é do domínio — o `ReportUpdate` é
+somente-adição, e uma rotina do repositório que removesse andamentos contradiria a
+propriedade que a etapa B5 estabeleceu, mesmo sendo ferramenta de desenvolvimento. As contas
+são criadas ou atualizadas pelo e-mail, sem sobrescrever senha trocada pela API; as
+ocorrências só entram em banco sem nenhuma, e `SEED_DEMO_FORCE=1` insere assim mesmo.
+
+Os protocolos continuam a sequência do ano a partir do maior já gravado, reaproveitando o
+`protocol-number.ts` da API — conferido registrando uma ocorrência pela API depois do seed e
+vendo sair `SISDEC-2026-000015`. A suíte e2e continua passando com os dados de demonstração no
+banco (104 testes), e eles sobrevivem à execução dela: a limpeza das suítes de fato só alcança
+o que elas mesmas criaram.
+
 ## 3. O que está pronto, em detalhe
 
 ### 3.1 Infraestrutura e ambiente
@@ -358,6 +386,7 @@ nenhuma em branco, nenhuma técnica.
 | Portas fixadas nos scripts: API 3000, Operações 3001, Cidadão 3002 | ✅ |
 | `.env` e `.env.example` das três aplicações | ✅ |
 | `prisma7.config.ts` lendo `DATABASE_URL` | ✅ |
+| Seed de produção (administrador) e seed de demonstração, separados | ✅ |
 
 ### 3.2 Scaffold das aplicações
 
@@ -436,7 +465,10 @@ Registrado explicitamente, para que a ausência não seja confundida com esqueci
 - **nenhuma tela** no Portal do Cidadão além da página inicial gerada pelo `create-next-app`,
   e nenhum cliente HTTP nele;
 - **nenhum teste automatizado nos portais** — a verificação de O1 foi feita contra a
-  aplicação no ar, e o plano não prevê suíte de testes de interface.
+  aplicação no ar, e o plano não prevê suíte de testes de interface;
+- **nenhum anexo nos dados de demonstração** — as ocorrências têm histórico e coordenadas, mas
+  nenhuma foto; `RF-OP-27` (ampliação dos anexos) precisará de um envio manual, ou de uma
+  extensão do seed, quando O2 chegar lá.
 
 ## 5. Próximo passo
 

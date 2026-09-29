@@ -32,7 +32,10 @@ npm run dev                    # http://localhost:3001
 A porta já está fixada nos scripts `dev` e `start` — não é preciso passar `-p`.
 
 > É preciso haver ao menos um agente cadastrado para entrar. Em `core/backend`,
-> `npx prisma db seed` cria o administrador do primeiro acesso.
+> `npx prisma db seed` cria o administrador do primeiro acesso, e
+> [`npm run seed:demo`](../backend/README.md#dois-seeds-com-propósitos-diferentes) cria as
+> contas de coordenador e agente e as ocorrências de demonstração — sem elas, as telas de
+> lista, painel e mapa não têm o que exibir.
 
 ## Pontos de atenção
 

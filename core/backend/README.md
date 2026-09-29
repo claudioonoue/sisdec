@@ -23,12 +23,44 @@ cp .env.example .env        # ajuste DATABASE_URL e JWT_SECRET se necessário
 # 3. Banco e cliente Prisma
 npx prisma migrate dev
 
-# 4. API em modo desenvolvimento
+# 4. Agente administrador do primeiro acesso
+npx prisma db seed
+
+# 5. API em modo desenvolvimento
 npm run start:dev
 ```
 
 - API: http://localhost:3000/api/v1
 - Documentação interativa (Swagger): http://localhost:3000/api/docs
+
+## Dois seeds, com propósitos diferentes
+
+| Comando | Arquivo | O que cria |
+|---|---|---|
+| `npx prisma db seed` | `prisma/seed.ts` | Apenas o agente administrador do primeiro acesso (`RF-API-51`) — é dado de produção |
+| `npm run seed:demo` | `prisma/seed-demo.ts` | Contas e ocorrências de **demonstração**, para exercitar as telas dos portais |
+
+O seed de demonstração **não** está registrado em `prisma7.config.ts`, e por isso `prisma db
+seed` nunca o executa: ele existe só para o trabalho de desenvolvimento.
+
+Ele cria quatro contas, todas com a senha `sisdec-demo` (ou `SEED_DEMO_PASSWORD`):
+
+| Conta | Perfil | Para quê |
+|---|---|---|
+| `coordenadora@sisdec.local` | Coordenador | Triagem e atribuição; `RF-OP-52` — não enxerga `/agentes` |
+| `agente.ana@sisdec.local` | Agente | Responsável por parte das ocorrências |
+| `agente.bruno@sisdec.local` | Agente | `RF-OP-64` — agente que **não** é o responsável |
+| `agente.inativo@sisdec.local` | Agente (inativo) | `RF-OP-53`; fica fora de `GET /reports/assignable-agents` |
+
+E 14 ocorrências cobrindo as seis situações, as quatro prioridades, seis bairros, com e sem
+coordenadas, identificadas e anônimas, espalhadas nos últimos 40 dias — o bastante para lista,
+filtros, painel, linha do tempo e mapa terem o que mostrar.
+
+**Não apaga nada.** As contas são criadas ou atualizadas pelo e-mail, sem sobrescrever senha
+trocada pela API; as ocorrências só entram quando o banco ainda não tem nenhuma. Para inserir
+mesmo assim, `SEED_DEMO_FORCE=1 npm run seed:demo`. Os protocolos continuam a sequência do
+ano, como a API faz, então a próxima ocorrência registrada por ela não colide nem deixa buraco
+na numeração.
 
 ## Scripts
 
@@ -37,6 +69,7 @@ npm run start:dev
 | `npm run start:dev` | Sobe a API com recarga automática |
 | `npm run build` | Compila para `dist/` |
 | `npm run start:prod` | Executa a versão compilada |
+| `npm run seed:demo` | Contas e ocorrências de **demonstração** (só desenvolvimento) |
 | `npm test` | Testes unitários (Vitest) |
 | `npm run test:e2e` | Testes end-to-end |
 | `npm run lint` | Análise estática (oxlint) |
