@@ -16,9 +16,9 @@ fundação do Portal de Operações.
 | Frente | Situação |
 |---|---|
 | Documentação do projeto | ✅ Completa para a etapa atual — 15 documentos |
-| Requisitos (RF e RNF) | ✅ 333 requisitos, nas três aplicações |
+| Requisitos (RF e RNF) | ✅ 334 requisitos, nas três aplicações |
 | Contrato da API — especificação | ✅ 27 rotas especificadas e conferidas contra os requisitos |
-| Plano de implementação | ✅ 20 etapas, cobrindo os 333 requisitos |
+| Plano de implementação | ✅ 20 etapas, cobrindo os 334 requisitos |
 | Ambiente de desenvolvimento | ✅ PostgreSQL em Docker, `.env` das três aplicações |
 | Scaffold das três aplicações | ✅ Sobem e respondem |
 | Modelo de dados no Prisma | ✅ 5 entidades, 5 enumerações e a primeira migração aplicada |
@@ -503,10 +503,10 @@ dependência nova prevista em todo o plano é `@nestjs/throttler`.
 
 | Aplicação | Funcionais | Não funcionais | Prefixo |
 |---|---|---|---|
-| API | 71 | 51 | `RF-API` / `RNF-API` |
+| API | 72 | 51 | `RF-API` / `RNF-API` |
 | Portal de Operações | 65 | 56 | `RF-OP` / `RNF-OP` |
 | Portal do Cidadão | 42 | 48 | `RF-CID` / `RNF-CID` |
-| **Total** | **178** | **155** | — |
+| **Total** | **179** | **155** | — |
 
 Cada requisito tem identificador permanente e prioridade; cada RNF tem ainda a forma de
 verificação. Cada documento de RF registra também o escopo negativo da versão.
@@ -538,7 +538,7 @@ A documentação é verificada por conferências que qualquer alteração futura
 - todo código de resposta citado em requisito existe na tabela do contrato;
 - toda situação do ciclo de vida é alcançável pela tabela de transições;
 - toda decisão citada existe no registro da arquitetura;
-- os 333 requisitos estão cobertos por alguma etapa do plano.
+- os 334 requisitos estão cobertos por alguma etapa do plano.
 
 ## 4. O que ainda não existe
 

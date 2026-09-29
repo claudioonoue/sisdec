@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { type PaginatedDto, paginated } from '../../common/dto/pagination.dto.js';
-import { AgentRole, Priority, ReportStatus } from '../../generated/prisma/enums.js';
+import { Priority, ReportStatus } from '../../generated/prisma/enums.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import type { AuthenticatedAgent } from '../auth/authenticated-agent.js';
 import { attachmentUrl } from '../attachments/attachment-url.js';
@@ -19,7 +19,14 @@ import type {
 import type { ListReportsQueryDto } from './dto/list-reports.dto.js';
 import type { MapReportsQueryDto, MapResponseDto } from './dto/map-reports.dto.js';
 import { buildReportOrderBy } from './report-sort.js';
-import { type TransitionOwner, findTransition, nextStatusesFrom } from './report-transitions.js';
+import {
+  type TransitionOwner,
+  assignmentAllows,
+  availableTransitions,
+  findTransition,
+  nextStatusesFrom,
+  roleAllows,
+} from './report-transitions.js';
 
 /** Campos da listagem — o suficiente para a tabela do Portal de Operações. */
 const LIST_SELECT = {
@@ -79,11 +86,12 @@ export class ReportsManagementService {
   }
 
   /** Detalhe completo, com dados do cidadão e histórico integral (RF-API-34). */
-  async findOne(id: string) {
+  async findOne(id: string, agent: AuthenticatedAgent) {
     const report = await this.prisma.report.findUnique({
       where: { id },
       select: {
         ...LIST_SELECT,
+        assignedToId: true,
         description: true,
         address: true,
         latitude: true,
@@ -114,12 +122,20 @@ export class ReportsManagementService {
       throw new NotFoundException('Ocorrência não encontrada');
     }
 
+    // `assignedToId` serve para decidir as transições e não faz parte do
+    // contrato do detalhe — `assignedTo` já traz o responsável.
+    const { assignedToId, ...detalhe } = report;
+
     return {
-      ...report,
+      ...detalhe,
       attachments: report.attachments.map((a) => ({ ...a, url: attachmentUrl(a.id) })),
       // A triagem sugere prioridade alta nos tipos de risco imediato à vida
       // (RF-API-36); a decisão continua sendo do coordenador.
       suggestedPriority: isUrgentReportType(report.type) ? Priority.HIGH : null,
+      // O que **este** agente pode fazer com **esta** ocorrência agora
+      // (RF-API-72). Resolvido aqui para que o portal não mantenha uma cópia do
+      // ciclo de vida nem repita a regra do responsável.
+      availableTransitions: availableTransitions(report.status, agent, assignedToId),
     };
   }
 
@@ -369,13 +385,15 @@ export class ReportsManagementService {
       );
     }
 
-    if (!transition.roles.includes(agent.role)) {
+    // Os dois predicados abaixo são os mesmos que `availableTransitions` usa
+    // para montar a lista oferecida ao portal (RF-API-72). Repetir a comparação
+    // aqui faria a lista e a execução divergirem, e o portal ofereceria um botão
+    // que a API recusa. Só as mensagens são daqui, porque os motivos diferem.
+    if (!roleAllows(transition, agent.role)) {
       throw new ForbiddenException('Perfil sem permissão para esta transição');
     }
 
-    // O agente comum só mexe no que lhe foi atribuído; coordenador e
-    // administrador atuam em qualquer ocorrência (RF-API-68).
-    if (agent.role === AgentRole.AGENT && report.assignedToId !== agent.id) {
+    if (!assignmentAllows(agent, report.assignedToId)) {
       throw new ForbiddenException(
         'Um agente só altera a situação da ocorrência que lhe foi atribuída',
       );

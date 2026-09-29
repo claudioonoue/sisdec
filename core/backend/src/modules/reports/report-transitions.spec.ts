@@ -1,9 +1,12 @@
-import { ReportStatus } from '../../generated/prisma/enums.js';
+import { AgentRole, ReportStatus } from '../../generated/prisma/enums.js';
 import {
   TRANSITIONS,
+  assignmentAllows,
+  availableTransitions,
   findTransition,
   isOpenStatus,
   nextStatusesFrom,
+  roleAllows,
 } from './report-transitions.js';
 
 describe('tabela de transições', () => {
@@ -80,5 +83,99 @@ describe('nextStatusesFrom', () => {
     expect(nextStatusesFrom(ReportStatus.IN_PROGRESS, 'status').sort()).toEqual(
       [ReportStatus.CANCELLED, ReportStatus.RESOLVED].sort(),
     );
+  });
+});
+
+describe('availableTransitions', () => {
+  const COORD = { id: 'coord-1', role: AgentRole.COORDINATOR };
+  const RESPONSAVEL = { id: 'agente-1', role: AgentRole.AGENT };
+  const OUTRO = { id: 'agente-2', role: AgentRole.AGENT };
+
+  it('oferece ao coordenador assumir a triagem de uma ocorrência recebida', () => {
+    expect(availableTransitions(ReportStatus.RECEIVED, COORD, null)).toEqual([
+      { to: ReportStatus.TRIAGE, owner: 'triage/start', requiresComment: false },
+    ]);
+  });
+
+  it('oferece as duas saídas da triagem, com a improcedência exigindo comentário', () => {
+    const saidas = availableTransitions(ReportStatus.TRIAGE, COORD, null);
+
+    expect(saidas).toHaveLength(2);
+    expect(saidas).toContainEqual({
+      to: ReportStatus.IN_PROGRESS,
+      owner: 'triage',
+      requiresComment: false,
+    });
+    expect(saidas).toContainEqual({
+      to: ReportStatus.REJECTED,
+      owner: 'triage',
+      requiresComment: true,
+    });
+  });
+
+  it('não oferece a triagem ao agente comum, que não tem esse perfil', () => {
+    expect(availableTransitions(ReportStatus.RECEIVED, RESPONSAVEL, RESPONSAVEL.id)).toEqual([]);
+    expect(availableTransitions(ReportStatus.TRIAGE, RESPONSAVEL, RESPONSAVEL.id)).toEqual([]);
+  });
+
+  it('oferece concluir e cancelar ao agente responsável', () => {
+    const acoes = availableTransitions(ReportStatus.IN_PROGRESS, RESPONSAVEL, RESPONSAVEL.id);
+
+    expect(acoes.map((a) => a.to).sort()).toEqual(
+      [ReportStatus.CANCELLED, ReportStatus.RESOLVED].sort(),
+    );
+    // Ambas encerram o atendimento, e por isso pedem justificativa (RF-OP-35).
+    expect(acoes.every((a) => a.requiresComment)).toBe(true);
+  });
+
+  it('não oferece nada ao agente que não é o responsável', () => {
+    expect(availableTransitions(ReportStatus.IN_PROGRESS, OUTRO, RESPONSAVEL.id)).toEqual([]);
+  });
+
+  it('oferece ao coordenador mesmo em ocorrência de outro responsável', () => {
+    expect(
+      availableTransitions(ReportStatus.IN_PROGRESS, COORD, RESPONSAVEL.id),
+    ).toHaveLength(2);
+  });
+
+  it('não oferece nada nas situações finais', () => {
+    for (const status of [ReportStatus.RESOLVED, ReportStatus.REJECTED, ReportStatus.CANCELLED]) {
+      expect(availableTransitions(status, COORD, null)).toEqual([]);
+    }
+  });
+
+  /**
+   * A propriedade que sustenta a decisão de O3: o portal oferece o que vem
+   * daqui, então esta lista precisa concordar, caso a caso, com o que a execução
+   * aceitaria. Se um dia alguém acrescentar uma conferência só na execução, é
+   * este teste que quebra.
+   */
+  it('concorda com os predicados da execução em toda combinação', () => {
+    const statuses = Object.values(ReportStatus);
+    const atores = [COORD, RESPONSAVEL, OUTRO, { id: 'admin-1', role: AgentRole.ADMIN }];
+
+    for (const status of statuses) {
+      for (const ator of atores) {
+        for (const assignedToId of [null, RESPONSAVEL.id]) {
+          const oferecidas = availableTransitions(status, ator, assignedToId);
+
+          const esperadas = TRANSITIONS.filter(
+            (t) =>
+              t.from === status &&
+              roleAllows(t, ator.role) &&
+              assignmentAllows(ator, assignedToId),
+          );
+
+          expect(oferecidas).toHaveLength(esperadas.length);
+          for (const t of esperadas) {
+            expect(oferecidas).toContainEqual({
+              to: t.to,
+              owner: t.owner,
+              requiresComment: t.requiresComment,
+            });
+          }
+        }
+      }
+    }
   });
 });

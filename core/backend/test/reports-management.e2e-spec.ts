@@ -304,6 +304,88 @@ describe('Gestão de ocorrências (e2e)', () => {
     });
   });
 
+  describe('transições disponíveis no detalhe (RF-API-72)', () => {
+    async function transicoesDe(id: string, token: string) {
+      const { body } = await request(app.getHttpServer())
+        .get(`/api/v1/reports/${id}`)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+      return body.availableTransitions as { to: string; owner: string; requiresComment: boolean }[];
+    }
+
+    it('oferece ao coordenador assumir a triagem de uma ocorrência recebida', async () => {
+      const id = await novaOcorrencia();
+
+      expect(await transicoesDe(id, coord)).toEqual([
+        { to: 'TRIAGE', owner: 'triage/start', requiresComment: false },
+      ]);
+    });
+
+    it('não oferece a triagem ao agente comum', async () => {
+      const id = await novaOcorrencia();
+
+      expect(await transicoesDe(id, agente)).toEqual([]);
+    });
+
+    it('oferece concluir e cancelar ao responsável, e nada a outro agente', async () => {
+      const id = await emAtendimento();
+      await request(app.getHttpServer())
+        .patch(`/api/v1/reports/${id}/assign`)
+        .set('Authorization', `Bearer ${coord}`)
+        .send({ assignedToId: idAgente })
+        .expect(200);
+
+      const doResponsavel = await transicoesDe(id, agente);
+      expect(doResponsavel.map((t) => t.to).sort()).toEqual(['CANCELLED', 'RESOLVED']);
+      expect(doResponsavel.every((t) => t.requiresComment)).toBe(true);
+
+      expect(await transicoesDe(id, outroAgente)).toEqual([]);
+    });
+
+    /**
+     * A propriedade que o Portal de Operações apoia: ele oferece exatamente o
+     * que vem deste campo. Se a API aceitasse algo fora da lista, ou recusasse
+     * algo dentro dela, a tela ofereceria um botão que não funciona — ou
+     * esconderia uma ação legítima.
+     */
+    it('o que é oferecido é aceito, e o que não é oferecido é recusado', async () => {
+      const id = await emAtendimento();
+      const oferecidas = await transicoesDe(id, outroAgente);
+      expect(oferecidas).toEqual([]);
+
+      // Não oferecida ao agente que não é o responsável — e recusada.
+      await request(app.getHttpServer())
+        .patch(`/api/v1/reports/${id}/status`)
+        .set('Authorization', `Bearer ${outroAgente}`)
+        .send({ status: 'RESOLVED', comment: 'Tentativa de quem não é responsável.' })
+        .expect(403);
+
+      // Oferecida ao coordenador — e aceita.
+      const doCoord = await transicoesDe(id, coord);
+      expect(doCoord.map((t) => t.to).sort()).toEqual(['CANCELLED', 'RESOLVED']);
+
+      await request(app.getHttpServer())
+        .patch(`/api/v1/reports/${id}/status`)
+        .set('Authorization', `Bearer ${coord}`)
+        .send({ status: 'RESOLVED', comment: 'Vistoria concluída no local.' })
+        .expect(200);
+
+      // Situação final: nada mais a oferecer.
+      expect(await transicoesDe(id, coord)).toEqual([]);
+    });
+
+    it('não devolve assignedToId solto — o responsável já vem em assignedTo', async () => {
+      const id = await emAtendimento();
+      const { body } = await request(app.getHttpServer())
+        .get(`/api/v1/reports/${id}`)
+        .set('Authorization', `Bearer ${coord}`)
+        .expect(200);
+
+      expect(body).not.toHaveProperty('assignedToId');
+      expect(body).toHaveProperty('assignedTo');
+    });
+  });
+
   describe('triagem em duas etapas', () => {
     it('leva RECEIVED a TRIAGE e depois a IN_PROGRESS (RF-API-60, RF-API-35)', async () => {
       const id = await novaOcorrencia();

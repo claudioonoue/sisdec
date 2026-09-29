@@ -151,8 +151,11 @@ export class ReportsController {
   @ApiOperation({ summary: 'Detalhe completo, com anexos, histórico e dados do cidadão' })
   @ApiOkResponse({ type: ReportDetailDto })
   @ApiNotFoundResponse({ description: 'Ocorrência não encontrada' })
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.management.findOne(id);
+  findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentAgent() agent: AuthenticatedAgent) {
+    // O agente entra na consulta porque `availableTransitions` é resolvido para
+    // quem pergunta: a mesma ocorrência oferece ações diferentes ao coordenador
+    // e ao agente que não é o seu responsável (RF-API-72).
+    return this.management.findOne(id, agent);
   }
 
   @Patch(':id/triage/start')

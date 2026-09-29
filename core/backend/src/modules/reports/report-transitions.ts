@@ -71,6 +71,68 @@ export function findTransition(
   return TRANSITIONS.find((t) => t.from === from && t.to === to && t.owner === owner);
 }
 
+/** Quem pergunta: o perfil e, para a regra do responsável, o próprio id. */
+export interface TransitionActor {
+  id: string;
+  role: AgentRole;
+}
+
+/**
+ * O perfil consta entre os autorizados a executar a transição.
+ *
+ * Predicado próprio — e não uma comparação escrita em dois lugares — porque
+ * tanto a execução quanto a consulta das transições disponíveis (`RF-API-72`)
+ * precisam dele, e é justamente a divergência entre essas duas respostas que
+ * faria o portal oferecer um botão que a API recusa.
+ */
+export function roleAllows(transition: Transition, role: AgentRole): boolean {
+  return transition.roles.includes(role);
+}
+
+/**
+ * O agente de perfil `AGENT` só atua na ocorrência que lhe foi atribuída;
+ * coordenador e administrador atuam em qualquer uma (`RF-API-68`).
+ */
+export function assignmentAllows(
+  actor: TransitionActor,
+  assignedToId: string | null,
+): boolean {
+  return actor.role !== AgentRole.AGENT || assignedToId === actor.id;
+}
+
+/** Uma transição que este agente pode executar nesta ocorrência, agora. */
+export interface AvailableTransition {
+  to: ReportStatus;
+  owner: TransitionOwner;
+  requiresComment: boolean;
+}
+
+/**
+ * Transições que o agente informado pode executar na ocorrência informada
+ * (`RF-API-72`).
+ *
+ * Existe para que o Portal de Operações não precise manter uma cópia do ciclo de
+ * vida: ele oferece as ações que vierem daqui. A conferência é feita pelos
+ * mesmos predicados que a execução usa — o que impede a lista oferecida de
+ * discordar do que a API aceita.
+ */
+export function availableTransitions(
+  status: ReportStatus,
+  actor: TransitionActor,
+  assignedToId: string | null,
+): AvailableTransition[] {
+  return TRANSITIONS.filter(
+    (transition) =>
+      transition.from === status &&
+      roleAllows(transition, actor.role) &&
+      assignmentAllows(actor, assignedToId),
+  ).map((transition) => ({
+    to: transition.to,
+    owner: transition.owner,
+    requiresComment: transition.requiresComment,
+  }));
+}
+
 /** Situações a partir das quais a ocorrência ainda pode mudar de estado. */
 export function isOpenStatus(status: ReportStatus): boolean {
   return TRANSITIONS.some((t) => t.from === status);

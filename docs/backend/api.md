@@ -256,6 +256,33 @@ Aceita os mesmos filtros de `GET /reports` e responde `text/csv` com
 `Content-Disposition: attachment`, uma linha por ocorrência e cabeçalho em pt-BR. Existe para
 que a exportação **não** seja montada no navegador a partir de páginas sucessivas da listagem.
 
+### Exemplo — `availableTransitions` no detalhe
+
+`GET /reports/:id` inclui as transições que **quem pediu** pode executar agora:
+
+```json
+"availableTransitions": [
+  { "to": "RESOLVED",  "owner": "status", "requiresComment": true },
+  { "to": "CANCELLED", "owner": "status", "requiresComment": true }
+]
+```
+
+- `owner` é o endpoint que executa a transição, relativo a `/reports/:id`:
+  `triage/start`, `triage` ou `status`. Em `triage`, `to: IN_PROGRESS` corresponde a
+  `outcome: ACCEPT` e `to: REJECTED` a `outcome: REJECT`;
+- a lista é **resolvida para o agente autenticado**: a mesma ocorrência em `IN_PROGRESS`
+  devolve duas transições ao coordenador e nenhuma ao agente que não é o seu responsável;
+- em situação final (`RESOLVED`, `REJECTED`, `CANCELLED`) a lista vem vazia.
+
+Existe para que o Portal de Operações ofereça só as ações válidas (`RF-OP-30`, `RF-OP-34`)
+**sem manter uma cópia do ciclo de vida** — a tabela de transições já divergiu uma vez entre
+documentos neste projeto, e duas cópias vivas divergiriam de novo. A conferência usa os mesmos
+predicados que a execução, de modo que o que é oferecido é aceito e o que não é oferecido é
+recusado; há teste e2e afirmando exatamente isso.
+
+Como sempre, a lista é conveniência de interface: a autorização continua sendo verificada na
+execução (`RNF-OP-14`).
+
 ### Exemplo — triagem em duas etapas
 
 A triagem é modelada em duas ações porque `TRIAGE` é um **estado real**: ele sinaliza que um
