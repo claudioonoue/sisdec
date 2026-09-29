@@ -1,7 +1,6 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
+// Modelo de dados do SISDEC.
+// Referência: docs/backend/modelo-de-dados.md — este arquivo deve ser alterado
+// junto com aquele documento.
 
 generator client {
   provider = "prisma-client"
@@ -9,5 +8,156 @@ generator client {
 }
 
 datasource db {
+  // A URL de conexão vem de prisma7.config.ts, que lê DATABASE_URL do .env.
   provider = "postgresql"
+}
+
+// ---------------------------------------------------------------- enumerações
+
+enum ReportCategory {
+  COMPLAINT // reclamação
+  SUGGESTION // sugestão
+  REQUEST // solicitação
+  RISK_ALERT // comunicação de risco
+}
+
+enum ReportType {
+  FLOODING // alagamento ou enchente
+  LANDSLIDE // deslizamento de terra ou queda de barreira
+  EROSION // erosão ou solapamento de margem
+  DANGEROUS_TREE // árvore em situação de perigo
+  DAMAGED_STRUCTURE // edificação ou muro com risco de desabamento
+  STRUCTURE_COLLAPSE // desabamento já ocorrido
+  FALLEN_POLE // poste ou fiação caída
+  FIRE // incêndio em edificação
+  VEGETATION_FIRE // incêndio em vegetação ou queimada
+  HAZARDOUS_MATERIAL // vazamento de gás, combustível ou produto químico
+  WILD_ANIMAL // animal selvagem ou peçonhento em área urbana
+  STORM_DAMAGE // destelhamento e danos por vendaval ou granizo
+  BLOCKED_DRAINAGE // bueiro, galeria ou córrego obstruído
+  OTHER // outros
+}
+
+enum ReportStatus {
+  RECEIVED // recebida
+  TRIAGE // em triagem
+  IN_PROGRESS // em atendimento
+  RESOLVED // resolvida
+  REJECTED // improcedente
+  CANCELLED // cancelada
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum AgentRole {
+  ADMIN
+  COORDINATOR
+  AGENT
+}
+
+// ------------------------------------------------------------------ entidades
+
+/// Ocorrência: registro central do sistema.
+model Report {
+  id             String         @id @default(uuid()) @db.Uuid
+  protocolNumber String         @unique
+  category       ReportCategory
+  type           ReportType
+  status         ReportStatus   @default(RECEIVED)
+  /// Nula no registro; definida na triagem.
+  priority       Priority?
+  description    String         @db.Text
+  address        String
+  district       String
+  latitude       Decimal?       @db.Decimal(10, 7)
+  longitude      Decimal?       @db.Decimal(10, 7)
+
+  /// Nulo quando o registro é anônimo.
+  citizenId String?  @db.Uuid
+  citizen   Citizen? @relation(fields: [citizenId], references: [id], onDelete: Restrict)
+
+  assignedToId String? @db.Uuid
+  assignedTo   Agent?  @relation("AssignedReports", fields: [assignedToId], references: [id], onDelete: Restrict)
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  /// Preenchido automaticamente na transição para RESOLVED.
+  resolvedAt DateTime?
+
+  updates     ReportUpdate[]
+  attachments Attachment[]
+
+  // Índices dos campos usados em filtro e ordenação (RNF-API-04).
+  @@index([status])
+  @@index([type])
+  @@index([priority])
+  @@index([district])
+  @@index([assignedToId])
+  @@index([createdAt])
+}
+
+/// Cidadão: preenchido apenas quando a pessoa opta por se identificar.
+model Citizen {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  email     String?
+  phone     String?
+  createdAt DateTime @default(now())
+
+  reports Report[]
+}
+
+/// Agente da Defesa Civil. Desativado em vez de excluído, para preservar o histórico.
+model Agent {
+  id           String    @id @default(uuid()) @db.Uuid
+  name         String
+  email        String    @unique
+  passwordHash String
+  role         AgentRole
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  assignedReports Report[]       @relation("AssignedReports")
+  updates         ReportUpdate[]
+}
+
+/// Andamento: uma linha para cada mudança de situação ou observação registrada.
+/// Somente-adição — nada no sistema altera ou remove um registro destes.
+model ReportUpdate {
+  id       String @id @default(uuid()) @db.Uuid
+  reportId String @db.Uuid
+  report   Report @relation(fields: [reportId], references: [id], onDelete: Restrict)
+  agentId  String @db.Uuid
+  agent    Agent  @relation(fields: [agentId], references: [id], onDelete: Restrict)
+
+  /// Nulos quando o andamento é apenas uma observação, sem mudança de situação.
+  fromStatus       ReportStatus?
+  toStatus         ReportStatus?
+  /// Obrigatório nas transições finais e nas observações; opcional nas demais.
+  comment          String?       @db.Text
+  visibleToCitizen Boolean       @default(false)
+  createdAt        DateTime      @default(now())
+
+  @@index([reportId, createdAt])
+}
+
+/// Anexo: foto enviada junto à ocorrência.
+model Attachment {
+  id       String @id @default(uuid()) @db.Uuid
+  reportId String @db.Uuid
+  report   Report @relation(fields: [reportId], references: [id], onDelete: Restrict)
+
+  fileName    String
+  storedPath  String
+  mimeType    String
+  sizeInBytes Int
+  createdAt   DateTime @default(now())
+
+  @@index([reportId])
 }

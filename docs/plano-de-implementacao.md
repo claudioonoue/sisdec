@@ -18,7 +18,7 @@ O que já existe no repositório, para que o plano comece do estado real e não 
 | `docker-compose.yml` com PostgreSQL 17, volume e *healthcheck* | Modelos no `schema.prisma` e primeira migração |
 | Scaffold NestJS com `main.ts` já configurado: prefixo `/api/v1`, CORS por `CORS_ORIGINS`, `ValidationPipe` com `whitelist` e `forbidNonWhitelisted`, Swagger em `/api/docs` | `PrismaModule`/`PrismaService` e todos os módulos de domínio |
 | `prisma7.config.ts` lendo `DATABASE_URL` do `.env` | Validação das variáveis de ambiente na inicialização |
-| Dependências da API: `@nestjs/jwt`, `passport-jwt`, `bcrypt`, `class-validator`, `@nestjs/swagger`, `@prisma/client`, tipos do `multer` | `@nestjs/throttler` (única dependência nova prevista) |
+| Dependências da API: `@nestjs/jwt`, `passport-jwt`, `bcrypt`, `class-validator`, `@nestjs/swagger`, `@prisma/client`, tipos do `multer` | `@prisma/adapter-pg` (exigido pelo Prisma 7, instalado em B0) e `@nestjs/throttler` (previsto para B3) |
 | `.env` e `.env.example` das três aplicações | — |
 | Scaffold Next.js 16 dos dois portais, com Tailwind 4, `leaflet`, `react-leaflet` e `@types/leaflet` | Cliente HTTP, tipos, componentes, telas e rotas |
 
@@ -78,6 +78,11 @@ API  ─────────────────────────
    token ou dado pessoal.
 8. Utilitário de paginação com `pageSize` padrão 20 e teto 100.
 9. `GET /health` com o estado do banco, respondendo `503` quando inacessível.
+10. Envelope JSON também para caminho sem rota: o Express responde HTML antes de o Nest
+    chegar ao filtro, e um portal que chamasse `response.json()` estouraria com erro de
+    parse. Exige um *fallback* registrado **depois** de `app.init()` e do Swagger.
+11. Configuração do app extraída para um ponto único, compartilhado entre o bootstrap e os
+    testes e2e, para que o que é testado seja o que roda.
 
 **Fecha**: `RF-API-58`, `RF-API-59` · `RNF-API-03`, `RNF-API-04`, `RNF-API-17`,
 `RNF-API-19`, `RNF-API-22`, `RNF-API-23`, `RNF-API-24`, `RNF-API-25`, `RNF-API-31`,

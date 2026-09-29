@@ -1,27 +1,11 @@
-import { ValidationPipe } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module.js';
+import { configureApp, useNotFoundFallback } from './configure-app.js';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-
-  // Todas as rotas ficam sob /api/v1 (ver docs/backend/api.md).
-  app.setGlobalPrefix('api/v1');
-
-  // Apenas os dois portais podem consumir a API.
-  app.enableCors({
-    origin: process.env.CORS_ORIGINS?.split(',').map((origin) => origin.trim()) ?? true,
-  });
-
-  // Valida os DTOs de entrada e descarta campos não declarados.
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-    }),
-  );
+  const app = configureApp(await NestFactory.create(AppModule));
 
   const swaggerConfig = new DocumentBuilder()
     .setTitle('SISDEC — Sistema Integrado da Defesa Civil')
@@ -33,7 +17,13 @@ async function bootstrap() {
     .build();
   SwaggerModule.setup('api/docs', app, SwaggerModule.createDocument(app, swaggerConfig));
 
-  await app.listen(process.env.PORT ?? 3000);
+  // Depois das rotas e do Swagger: só então o que sobra é de fato não encontrado.
+  await app.init();
+  useNotFoundFallback(app);
+
+  const port = process.env.PORT ?? 3000;
+  await app.listen(port);
+  Logger.log(`API em http://localhost:${port}/api/v1`, 'Bootstrap');
 }
 
 await bootstrap();

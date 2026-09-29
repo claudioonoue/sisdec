@@ -6,7 +6,7 @@ O que já foi construído no SISDEC, o que ainda não existe e qual é o próxim
 > [plano de implementação](plano-de-implementacao.md). Registra **estado**, não intenção —
 > um item só é marcado como pronto quando está verificado e commitado.
 
-Última atualização: **29 de setembro de 2026**.
+Última atualização: **29 de setembro de 2026** — etapa B0 concluída.
 
 ---
 
@@ -20,11 +20,12 @@ O que já foi construído no SISDEC, o que ainda não existe e qual é o próxim
 | Plano de implementação | ✅ 20 etapas, cobrindo os 332 requisitos |
 | Ambiente de desenvolvimento | ✅ PostgreSQL em Docker, `.env` das três aplicações |
 | Scaffold das três aplicações | ✅ Sobem e respondem |
-| **Modelo de dados no Prisma** | ⬜ `schema.prisma` ainda sem modelos |
-| **Código de domínio da API** | ⬜ Nenhum módulo implementado |
+| Modelo de dados no Prisma | ✅ 5 entidades, 5 enumerações e a primeira migração aplicada |
+| Fundação da API (etapa B0) | ✅ Concluída e verificada |
+| **Código de domínio da API** | ⬜ Nenhum módulo de negócio implementado |
 | **Telas dos portais** | ⬜ Apenas a página inicial do scaffold |
 
-Em uma frase: **a especificação está fechada e verificada; a implementação ainda não começou.**
+Em uma frase: **a especificação está fechada e a implementação começou pela fundação da API.**
 
 ## 2. Linha do tempo
 
@@ -51,10 +52,35 @@ Commits `4746bcb` e `07d5098`.
 - Quatro decisões técnicas novas (11 a 14) e ajustes em `api.md`, `modelo-de-dados.md`,
   `glossario.md` e nos `README.md` das aplicações.
 
+### 29 de setembro de 2026 — etapa B0: fundação da API
+
+Primeira etapa de implementação, conforme o
+[plano](plano-de-implementacao.md#b0-fundação).
+
+- `schema.prisma` completo: 5 entidades, 5 enumerações, os 6 índices de `RNF-API-04`,
+  `UNIQUE` em `protocolNumber` e chaves estrangeiras `RESTRICT` — sem exclusão em cascata.
+- Primeira migração aplicada (`20260929041941_initial_schema`) e cliente gerado.
+- `PrismaModule` e `PrismaService` com a conexão no ciclo de vida do Nest.
+- Validação do ambiente na inicialização: subir sem variável obrigatória falha nomeando-a.
+- Filtro global de exceções no formato `{ statusCode, message, error }`, sem *stack trace*.
+- Interceptor de log com método, rota, código e duração — sem corpo, cabeçalho nem query.
+- Utilitário de paginação com padrão 20 e teto 100.
+- `GET /health` com o estado do banco, respondendo `503` quando inacessível.
+- 14 testes unitários e 2 e2e; `tsc`, lint e build limpos.
+
+Duas coisas que a etapa revelou e que o plano não previa:
+
+- o **Prisma 7 exige um driver adapter explícito** — `@prisma/adapter-pg` passou a ser
+  dependência da API;
+- o **Express responde HTML** em caminho sem rota, antes de o Nest chegar ao filtro de
+  exceções, o que quebraria `response.json()` nos portais. Resolvido com um *fallback*
+  registrado depois de `app.init()`.
+
 ### Em andamento — ainda não commitado
 
 - [Plano de implementação](plano-de-implementacao.md), com 20 etapas.
 - Este registro de progresso.
+- Tudo o que a etapa B0 produziu.
 
 ## 3. O que está pronto, em detalhe
 
@@ -136,22 +162,21 @@ A documentação é verificada por conferências que qualquer alteração futura
 
 Registrado explicitamente, para que a ausência não seja confundida com esquecimento:
 
-- **`schema.prisma` sem modelos** — nenhuma entidade, nenhuma migração, banco vazio;
 - **nenhum módulo de domínio na API** — `auth`, `agents`, `reports`, `report-updates`,
-  `attachments` e `dashboard` ainda não existem; o que há é o `AppController` do scaffold;
-- **nenhum `PrismaService`**, nenhuma validação de variáveis de ambiente na inicialização;
+  `attachments` e `dashboard` ainda não existem; das 25 rotas do contrato, só `GET /health`
+  está no ar;
+- **nenhum dado** no banco: as tabelas existem, mas não há `seed` nem agente administrador;
 - **nenhuma tela** nos dois portais além da página inicial gerada pelo `create-next-app`;
-- **nenhum cliente HTTP** nos portais, nenhum tipo compartilhado com a API;
-- **nenhum teste** além dos dois arquivos de exemplo do scaffold.
+- **nenhum cliente HTTP** nos portais, nenhum tipo compartilhado com a API.
 
 ## 5. Próximo passo
 
-**Etapa B0 — Fundação da API**, a primeira do
-[plano de implementação](plano-de-implementacao.md#b0-fundação): escrever o `schema.prisma`
-completo a partir do modelo de dados, gerar a primeira migração, criar o `PrismaService`,
-validar as variáveis de ambiente na inicialização e entregar `GET /health`.
+**Etapa B1 — Metadados públicos**, do
+[plano de implementação](plano-de-implementacao.md#b1-metadados-públicos): o módulo
+`metadata` com `GET /metadata` (tipos, categorias, situações e limites de upload) e
+`GET /report-types` como atalho — o que destrava a etapa C1 do Portal do Cidadão.
 
-É o começo do caminho crítico **B0 → B3 → B5 → B6**, do qual todo o resto depende.
+O caminho crítico segue em **B3 → B5 → B6**.
 
 ## 6. Como manter este documento
 
