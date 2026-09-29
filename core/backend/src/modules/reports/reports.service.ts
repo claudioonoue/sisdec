@@ -1,6 +1,7 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ReportStatus } from '../../generated/prisma/enums.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { attachmentUrl } from '../attachments/attachment-url.js';
 import type { CreateReportDto } from './dto/create-report.dto.js';
 import type {
   PublicReportDto,
@@ -141,11 +142,8 @@ export class ReportsService {
 
     return {
       ...report,
-      attachments: report.attachments.map(({ id }) => ({
-        id,
-        // A leitura é sempre servida pela API — nunca o disco nem um bucket.
-        url: `/api/v1/attachments/${id}`,
-      })),
+      // A leitura é sempre servida pela API — nunca o disco nem um bucket.
+      attachments: report.attachments.map(({ id }) => ({ id, url: attachmentUrl(id) })),
     };
   }
 

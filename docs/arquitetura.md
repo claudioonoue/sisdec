@@ -113,12 +113,18 @@ O módulo `attachments` do backend expõe uma interface e uma implementação lo
 
 ```ts
 interface StorageService {
-  save(file: Express.Multer.File): Promise<{ storedPath: string }>;
-  read(storedPath: string): Promise<Buffer>;
+  save(content: Buffer, extension: string): Promise<{ storedPath: string }>;
+  createReadStream(storedPath: string): Promise<Readable>;
   remove(storedPath: string): Promise<void>;
-  getUrl(storedPath: string): string;
 }
 ```
+
+> A interface esboçada inicialmente recebia o `Express.Multer.File` e devolvia um `Buffer` na
+> leitura. Ambos mudaram na implementação (etapa B4): o `Buffer` contrariava o
+> [RNF-API-06](backend/requisitos-nao-funcionais.md), que exige servir o anexo em fluxo, e
+> receber o objeto do multer amarraria a interface ao framework HTTP, atrapalhando justamente
+> a troca por S3 que ela existe para permitir. A montagem da URL saiu da interface: ela não
+> depende do armazenamento, e vive em `attachments/attachment-url.ts`.
 
 - `LocalStorageService` grava em `UPLOAD_DIR` e é a implementação usada no trabalho;
 - `remove()` faz parte da interface para que a troca por S3 não exija alterá-la, mas

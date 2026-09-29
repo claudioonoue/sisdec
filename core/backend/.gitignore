@@ -3,3 +3,6 @@ node_modules
 .env
 
 /src/generated/prisma
+
+# Anexos gravados em disco no ambiente local (STORAGE_DRIVER=local)
+/uploads

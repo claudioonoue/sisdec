@@ -6,7 +6,7 @@ O que já foi construído no SISDEC, o que ainda não existe e qual é o próxim
 > [plano de implementação](plano-de-implementacao.md). Registra **estado**, não intenção —
 > um item só é marcado como pronto quando está verificado e commitado.
 
-Última atualização: **29 de setembro de 2026** — etapas B0 a B3 concluídas.
+Última atualização: **29 de setembro de 2026** — etapas B0 a B4 concluídas.
 
 ---
 
@@ -25,10 +25,11 @@ O que já foi construído no SISDEC, o que ainda não existe e qual é o próxim
 | Metadados públicos (etapa B1) | ✅ Concluída e verificada |
 | Autenticação e agentes (etapa B2) | ✅ Concluída e verificada |
 | Registro e consulta por protocolo (etapa B3) | ✅ Concluída e verificada |
-| **Gestão de ocorrências** | ⬜ Triagem, atribuição e histórico ainda não existem — 12 das 25 rotas no ar |
+| Anexos (etapa B4) | ✅ Concluída e verificada |
+| **Gestão de ocorrências** | ⬜ Triagem, atribuição e histórico ainda não existem — 14 das 25 rotas no ar |
 | **Telas dos portais** | ⬜ Apenas a página inicial do scaffold |
 
-Em uma frase: **o cidadão já pode registrar uma ocorrência e acompanhá-la por protocolo; falta o atendimento pelos agentes.**
+Em uma frase: **o fluxo do cidadão está completo, com fotos; falta o atendimento pelos agentes.**
 
 ## 2. Linha do tempo
 
@@ -166,11 +167,44 @@ A limpeza das suítes e2e passou a usar um marcador gravado na descrição, em v
 protocolos montada durante as asserções: quando o teste de concorrência quebrou, os registros
 criados ficaram no banco justamente porque a lista nunca chegou a ser preenchida.
 
+### 29 de setembro de 2026 — etapa B4: anexos
+
+Conforme o [plano](plano-de-implementacao.md#b4-anexos). Fecha o fluxo do cidadão.
+
+- `StorageService` como fronteira do armazenamento e `LocalStorageService` gravando em
+  `UPLOAD_DIR`, escolhido por `STORAGE_DRIVER` em um único ponto — o provider do módulo.
+- `POST /reports/:id/attachments`: até 5 arquivos, tipo verificado **pela assinatura dos bytes**
+  e não pelo `Content-Type` nem pela extensão, e teto de tamanho vindo de `MAX_UPLOAD_SIZE_MB`.
+- Anexo aceito apenas enquanto a ocorrência está em `RECEIVED`, com `409` depois disso.
+- `GET /attachments/:id` servindo em fluxo, com o tipo gravado no registro.
+- 26 testes unitários e 14 e2e novos.
+
+Quatro pontos que valem registro:
+
+- **O nome do arquivo é gerado pela aplicação.** O nome original é guardado no banco, mas nunca
+  chega ao disco: além de poder conter `../`, ele carrega dado do cidadão. Há teste enviando
+  um arquivo chamado `../../etc/passwd`.
+- **O lote inteiro é conferido antes de qualquer gravação**, para que um arquivo recusado no
+  meio não deixe os anteriores no disco — verificado por teste que confere o `UPLOAD_DIR`
+  antes e depois de um envio recusado.
+- **O download precisou de `StreamableFile`.** Devolver o `Readable` cru fazia o Nest
+  serializá-lo como JSON: o `Content-Type` saía correto e o corpo era o objeto do stream. O
+  teste compara os bytes com o arquivo enviado, e foi o que pegou — um teste que só conferisse
+  o cabeçalho teria passado servindo lixo.
+- **A consulta pública não expõe o nome do arquivo**, que pode conter dado do cidadão; devolve
+  apenas o `id` e a URL.
+
+Uma divergência de documentação corrigida: a interface `StorageService` esboçada em
+[arquitetura.md](arquitetura.md#armazenamento-de-anexos-decisão-07) devolvia `Promise<Buffer>`
+na leitura, o que contraria o `RNF-API-06`, e recebia o `Express.Multer.File`, o que amarraria
+a interface ao framework HTTP — justamente o contrário do que ela existe para permitir. O
+documento foi alinhado à implementação.
+
 ### Em andamento — ainda não commitado
 
 - [Plano de implementação](plano-de-implementacao.md), com 20 etapas.
 - Este registro de progresso.
-- Tudo o que a etapa B3 produziu.
+- Tudo o que a etapa B4 produziu.
 
 ## 3. O que está pronto, em detalhe
 
@@ -260,13 +294,13 @@ Registrado explicitamente, para que a ausência não seja confundida com esqueci
 
 ## 5. Próximo passo
 
-**Etapa B4 — Anexos**, do [plano de implementação](plano-de-implementacao.md#b4-anexos):
-a interface `StorageService` com a implementação local, `POST /reports/:id/attachments`
-limitado à janela de `RECEIVED`, verificação do tipo pelo conteúdo do arquivo e
-`GET /attachments/:id` servindo em fluxo.
+**Etapa B5 — Gestão de ocorrências**, do
+[plano de implementação](plano-de-implementacao.md#b5-gestão-de-ocorrências): a listagem com
+filtros, o detalhe completo, a triagem em duas etapas, a atribuição de responsável, a mudança
+de situação com as transições válidas e o histórico de andamentos.
 
-Depois dela, o caminho crítico segue em **B5 → B6**. As etapas O1 e C1 dos portais já estão
-destravadas e podem correr em paralelo.
+É a maior etapa da API e o próximo trecho do caminho crítico. As etapas O1 e C1 dos portais já
+estão destravadas e podem correr em paralelo.
 
 ## 6. Como manter este documento
 
