@@ -1,5 +1,6 @@
 import { AgentRole, ReportStatus } from '../../generated/prisma/enums.js';
 import {
+  OPEN_STATUSES,
   TRANSITIONS,
   assignmentAllows,
   availableTransitions,
@@ -176,6 +177,31 @@ describe('availableTransitions', () => {
           }
         }
       }
+    }
+  });
+});
+
+describe('OPEN_STATUSES', () => {
+  it('contém exatamente as situações de onde parte alguma transição', () => {
+    expect([...OPEN_STATUSES].sort()).toEqual(
+      [ReportStatus.RECEIVED, ReportStatus.TRIAGE, ReportStatus.IN_PROGRESS].sort(),
+    );
+  });
+
+  it('exclui as situações finais', () => {
+    for (const status of [ReportStatus.RESOLVED, ReportStatus.REJECTED, ReportStatus.CANCELLED]) {
+      expect(OPEN_STATUSES).not.toContain(status);
+    }
+  });
+
+  /**
+   * A lista é derivada da tabela, e não escrita à mão. Este teste é o que
+   * garante que continue assim: acrescentar uma aresta partindo de uma situação
+   * hoje final a torna aberta em todo o sistema, sem editar lista nenhuma.
+   */
+  it('concorda com isOpenStatus em toda situação do enum', () => {
+    for (const status of Object.values(ReportStatus)) {
+      expect(OPEN_STATUSES.includes(status)).toBe(isOpenStatus(status));
     }
   });
 });

@@ -101,6 +101,13 @@ export class ReportDetailDto extends ReportListItemDto {
   suggestedPriority!: Priority | null;
 
   @ApiProperty({
+    description:
+      'Ocorrência ainda em curso (RF-API-73). Não se deduz de availableTransitions vazia, ' +
+      'que também fica vazia para quem não pode agir.',
+  })
+  open!: boolean;
+
+  @ApiProperty({
     type: [AvailableTransitionDto],
     description: 'Transições que o agente autenticado pode executar agora (RF-API-72)',
   })

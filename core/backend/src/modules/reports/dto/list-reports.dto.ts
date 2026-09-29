@@ -76,6 +76,16 @@ export class ListReportsQueryDto extends PaginationQueryDto {
   search?: string;
 
   @ApiPropertyOptional({
+    enum: ['true', 'false'],
+    description:
+      'Apenas ocorrências em aberto (RF-API-73). Ignorado quando `status` é informado, ' +
+      'que é o recorte mais específico.',
+  })
+  @IsOptional()
+  @IsIn(['true', 'false'], { message: "open deve ser 'true' ou 'false'" })
+  open?: string;
+
+  @ApiPropertyOptional({
     enum: REPORT_SORT_FIELDS,
     default: DEFAULT_SORT_FIELD,
     description: 'Campo de ordenação (RF-API-71)',

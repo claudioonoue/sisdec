@@ -20,10 +20,12 @@ import type { ListReportsQueryDto } from './dto/list-reports.dto.js';
 import type { MapReportsQueryDto, MapResponseDto } from './dto/map-reports.dto.js';
 import { buildReportOrderBy } from './report-sort.js';
 import {
+  OPEN_STATUSES,
   type TransitionOwner,
   assignmentAllows,
   availableTransitions,
   findTransition,
+  isOpenStatus,
   nextStatusesFrom,
   roleAllows,
 } from './report-transitions.js';
@@ -46,9 +48,6 @@ const LIST_SELECT = {
  * limite próprio: sem ele, um recorte amplo carregaria a base inteira.
  */
 export const MAP_LIMIT = 500;
-
-/** Situações em que a ocorrência ainda está aberta — o padrão do mapa. */
-const OPEN_STATUSES = [ReportStatus.RECEIVED, ReportStatus.TRIAGE, ReportStatus.IN_PROGRESS];
 
 /** Cabeçalho do CSV de exportação, em pt-BR. */
 const CSV_HEADER = [
@@ -132,6 +131,10 @@ export class ReportsManagementService {
       // A triagem sugere prioridade alta nos tipos de risco imediato à vida
       // (RF-API-36); a decisão continua sendo do coordenador.
       suggestedPriority: isUrgentReportType(report.type) ? Priority.HIGH : null,
+      // Se a ocorrência ainda está em curso (RF-API-73). Vem daqui para que o
+      // portal não precise saber quais situações são finais — `availableTransitions`
+      // vazia não basta, porque também fica vazia para quem não pode agir.
+      open: isOpenStatus(report.status),
       // O que **este** agente pode fazer com **esta** ocorrência agora
       // (RF-API-72). Resolvido aqui para que o portal não mantenha uma cópia do
       // ciclo de vida nem repita a regra do responsável.
@@ -257,7 +260,7 @@ export class ReportsManagementService {
   async findForMap(query: MapReportsQueryDto): Promise<MapResponseDto> {
     const where = {
       ...this.buildWhere(query as ListReportsQueryDto),
-      ...(query.status ? {} : { status: { in: OPEN_STATUSES } }),
+      ...(query.status ? {} : { status: { in: [...OPEN_STATUSES] } }),
     };
 
     const [comCoordenadas, totalDoRecorte] = await Promise.all([
@@ -445,7 +448,11 @@ export class ReportsManagementService {
 
   private buildWhere(query: ListReportsQueryDto) {
     return {
-      ...(query.status && { status: query.status }),
+      // `status` é o recorte mais específico e tem precedência sobre `open`,
+      // como já acontecia no mapa. Só uma das duas chaves pode existir.
+      ...(query.status
+        ? { status: query.status }
+        : query.open === 'true' && { status: { in: [...OPEN_STATUSES] } }),
       ...(query.type && { type: query.type }),
       ...(query.category && { category: query.category }),
       ...(query.priority && { priority: query.priority }),

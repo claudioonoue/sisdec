@@ -256,6 +256,31 @@ Aceita os mesmos filtros de `GET /reports` e responde `text/csv` com
 `Content-Disposition: attachment`, uma linha por ocorrência e cabeçalho em pt-BR. Existe para
 que a exportação **não** seja montada no navegador a partir de páginas sucessivas da listagem.
 
+### Ocorrência em aberto
+
+Uma ocorrência está **em aberto** enquanto alguma transição parte da sua situação — hoje
+`RECEIVED`, `TRIAGE` e `IN_PROGRESS`. A lista não é mantida à parte: sai da própria tabela de
+transições, de modo que acrescentar uma aresta partindo de uma situação hoje final a torne
+aberta em todo o sistema, sem editar lista nenhuma.
+
+A noção aparece em três lugares (`RF-API-73`):
+
+| Onde | O quê |
+|---|---|
+| `GET /reports?open=true` | Filtra a listagem. Um `status` explícito tem precedência, por ser o recorte mais específico — como já acontece no mapa |
+| `GET /dashboard/summary` → `openByPriority` | Totais por prioridade **apenas das abertas** |
+| `GET /reports/:id` → `open` | Se a ocorrência ainda está em curso |
+
+`openByPriority` existe separado de `byPriority` porque o painel destaca o que ainda exige
+atenção (`RF-OP-10`): contar as concluídas junto inflaria justamente o número que o agente usa
+para decidir o que fazer agora. E `open` no detalhe existe porque `availableTransitions` vazia
+**não** significa ocorrência encerrada — ela também vem vazia para quem não pode agir.
+
+> Os seis números de `GET /dashboard/summary` são lidos numa transação `RepeatableRead`, de
+> modo que sempre fechem entre si. Em consultas paralelas, uma ocorrência registrada no meio
+> faz a soma por situação não bater com o total — um painel que se contradiz é pior do que um
+> painel alguns milissegundos mais velho.
+
 ### Exemplo — `availableTransitions` no detalhe
 
 `GET /reports/:id` inclui as transições que **quem pediu** pode executar agora:

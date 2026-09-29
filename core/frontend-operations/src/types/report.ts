@@ -101,6 +101,12 @@ export interface ReportDetail extends ReportListItem {
   attachments: ReportAttachment[];
   updates: ReportUpdateEntry[];
   suggestedPriority: Priority | null;
+  /**
+   * Ocorrência ainda em curso (RF-API-73). Vem da API porque não se deduz de
+   * `availableTransitions` vazia — ela também fica vazia para quem não pode
+   * agir —, e deduzi-la da situação exigiria o portal saber quais são finais.
+   */
+  open: boolean;
   availableTransitions: AvailableTransition[];
 }
 

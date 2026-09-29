@@ -16,9 +16,9 @@ fundação do Portal de Operações.
 | Frente | Situação |
 |---|---|
 | Documentação do projeto | ✅ Completa para a etapa atual — 15 documentos |
-| Requisitos (RF e RNF) | ✅ 334 requisitos, nas três aplicações |
+| Requisitos (RF e RNF) | ✅ 335 requisitos, nas três aplicações |
 | Contrato da API — especificação | ✅ 27 rotas especificadas e conferidas contra os requisitos |
-| Plano de implementação | ✅ 20 etapas, cobrindo os 334 requisitos |
+| Plano de implementação | ✅ 20 etapas, cobrindo os 335 requisitos |
 | Ambiente de desenvolvimento | ✅ PostgreSQL em Docker, `.env` das três aplicações |
 | Scaffold das três aplicações | ✅ Sobem e respondem |
 | Modelo de dados no Prisma | ✅ 5 entidades, 5 enumerações e a primeira migração aplicada |
@@ -34,11 +34,12 @@ fundação do Portal de Operações.
 | Fundação e sessão do Portal de Operações (etapa O1) | ✅ Concluída e verificada |
 | Lista e detalhe da ocorrência (etapa O2) | ✅ Concluída e verificada |
 | Atendimento da ocorrência (etapa O3) | ✅ Concluída e verificada |
-| **Telas restantes do Portal de Operações** | ⬜ Painel, mapa e agentes — etapas O4 a O6 |
+| Painel de indicadores (etapa O4) | ✅ Concluída e verificada |
+| **Telas restantes do Portal de Operações** | ⬜ Mapa e agentes — etapas O5 e O6 |
 | **Portal do Cidadão** | ⬜ Apenas a página inicial do scaffold |
 
-Em uma frase: **a API está pronta — as 27 rotas, 272 testes; o Portal de Operações já atende
-as ocorrências do começo ao fim, e faltam o painel, o mapa, os agentes e o Portal do Cidadão
+Em uma frase: **a API está pronta — as 27 rotas, 280 testes; o Portal de Operações já atende
+as ocorrências do começo ao fim e tem painel, e faltam o mapa, os agentes e o Portal do Cidadão
 inteiro.**
 
 ## 2. Linha do tempo
@@ -525,6 +526,60 @@ encerramento e vê o motivo; encerrar sem comentário é recusado junto ao campo
 encerrada diz que a situação não muda mais e mantém o histórico aberto; o andamento marcado
 como visível aparece na consulta pública por protocolo, que continua sem vazar dado pessoal.
 
+### 29 de setembro de 2026 — etapa O4: painel
+
+Conforme o [plano](plano-de-implementacao.md#o4-painel).
+
+- Indicadores de cabeçalho, distribuições por situação, prioridade, tipo e bairro, gráfico de
+  volume diário e recorte por período.
+- `RF-API-73` na API: a noção de ocorrência **em aberto** passou a ser explícita.
+
+**A lacuna desta etapa** foi a terceira do mesmo padrão. O `RF-OP-10` pede destaque para as
+críticas e altas **ainda não concluídas**, mas `byPriority` contava todas, e o filtro da lista
+não sabia separar as abertas. Nos dados de demonstração a diferença é gritante: *3 altas no
+total, 1 ainda em aberto* — o painel anunciaria o triplo do que exige atenção. A noção entrou
+em três superfícies de uma vez (filtro `?open=true`, `openByPriority` no resumo e `open` no
+detalhe), e a lista de situações abertas passou a ser **derivada da tabela de transições** em
+vez de escrita à mão: ela existia copiada em dois services da API e num terceiro lugar do
+portal.
+
+Vale nomear o padrão, já registrado no
+[plano](plano-de-implementacao.md#5-cobertura-dos-requisitos): os requisitos da API foram
+escritos do ponto de vista da API, e os dos portais do ponto de vista das telas. As costuras
+aparecem exatamente onde uma tela precisa de um recorte que a API não previu — e só aparecem
+ao construir a tela, não relendo os documentos.
+
+Duas decisões de visualização, tomadas com o validador de paleta na mão:
+
+- **as barras do painel têm um matiz só.** A barra codifica magnitude; quem diz de qual
+  situação ou bairro se trata é o rótulo ao lado. Medidas pelo validador, as cores de
+  prioridade do portal ficam a **ΔE 2,8 para deuteranopia** entre crítica e alta —
+  indistinguíveis. Elas continuam válidas onde estão, porque sempre acompanham rótulo
+  (`RNF-OP-31`), mas usá-las como série de gráfico seria pedir à cor o que ela não entrega;
+- **a linha "Aguardando triagem" não é clicável.** A API não tem filtro para ausência de
+  prioridade, e um link para as recebidas daria um número diferente do exibido — as em triagem
+  também estão sem prioridade. Link que leva a outro recorte é pior do que link nenhum.
+
+**Dois defeitos encontrados ao exercitar a tela:**
+
+- **as dicas de valor do gráfico saíam vazias.** O React 19 trata `<title>` como elemento
+  especial e descarta o conteúdo quando recebe vários filhos — o meu tinha interpolação de data
+  e de número. `tsc`, lint e build passaram limpos, e o HTML trazia catorze `<title></title>`.
+  Passou a receber uma única string;
+- **um valor de enumeração escapou de `types/`**, num endereço montado por *template string*.
+  A busca que eu vinha usando procurava o literal entre aspas e não o via. A conferência do
+  `RNF-OP-45` passou a ser por palavra, sem exigir aspas.
+
+Também corrigi um defeito da API que só apareceu porque os novos testes escrevem em paralelo:
+**os seis números do resumo eram lidos em consultas concorrentes**, então uma ocorrência
+registrada no meio fazia a soma por situação não fechar com o total. Passaram a ser lidos numa
+transação `RepeatableRead` — um painel que se contradiz é pior do que um painel alguns
+milissegundos mais velho. A suíte e2e foi rodada três vezes seguidas com o mesmo resultado.
+
+Verificado contra a API no ar: cada indicador leva a uma lista cujo total **bate com o número
+exibido** — conferido nos cinco recortes; o período acompanha os links; o gráfico tem rótulo
+acessível, valor por barra e tabela alternativa aberta por `<details>`.
+
 ## 3. O que está pronto, em detalhe
 
 ### 3.1 Infraestrutura e ambiente
@@ -542,7 +597,7 @@ como visível aparece na consulta pública por protocolo, que continua sem vazar
 | Aplicação | Versões | O que já roda |
 |---|---|---|
 | API | NestJS 12, Prisma 7.10, TypeScript 6, Vitest 4.1 | As 27 rotas do contrato, com prefixo `/api/v1`, CORS por `CORS_ORIGINS`, `ValidationPipe` com `whitelist` e `forbidNonWhitelisted`, e Swagger em `/api/docs` |
-| Portal de Operações | Next.js 16.3, React 19.2, Tailwind 4, Leaflet 1.9 | Sessão e navegação (O1); lista e detalhe (O2); atendimento (O3) |
+| Portal de Operações | Next.js 16.3, React 19.2, Tailwind 4, Leaflet 1.9 | Sessão (O1); lista e detalhe (O2); atendimento (O3); painel (O4) |
 | Portal do Cidadão | Next.js 16.3, React 19.2, Tailwind 4, Leaflet 1.9 | Página inicial do scaffold |
 
 Dependências de domínio da API já instaladas: `@nestjs/jwt`, `passport-jwt`, `bcrypt`,
@@ -565,10 +620,10 @@ dependência nova prevista em todo o plano é `@nestjs/throttler`.
 
 | Aplicação | Funcionais | Não funcionais | Prefixo |
 |---|---|---|---|
-| API | 72 | 51 | `RF-API` / `RNF-API` |
+| API | 73 | 51 | `RF-API` / `RNF-API` |
 | Portal de Operações | 65 | 56 | `RF-OP` / `RNF-OP` |
 | Portal do Cidadão | 42 | 48 | `RF-CID` / `RNF-CID` |
-| **Total** | **179** | **155** | — |
+| **Total** | **180** | **155** | — |
 
 Cada requisito tem identificador permanente e prioridade; cada RNF tem ainda a forma de
 verificação. Cada documento de RF registra também o escopo negativo da versão.
@@ -600,14 +655,14 @@ A documentação é verificada por conferências que qualquer alteração futura
 - todo código de resposta citado em requisito existe na tabela do contrato;
 - toda situação do ciclo de vida é alcançável pela tabela de transições;
 - toda decisão citada existe no registro da arquitetura;
-- os 334 requisitos estão cobertos por alguma etapa do plano.
+- os 335 requisitos estão cobertos por alguma etapa do plano.
 
 ## 4. O que ainda não existe
 
 Registrado explicitamente, para que a ausência não seja confundida com esquecimento:
 
-- **nenhum painel e nenhum mapa de conjunto** — `/` e `/mapa` seguem como destinos da
-  navegação, sem conteúdo próprio (etapas O4 e O5); `/agentes` idem (O6);
+- **nenhum mapa de conjunto** — `/mapa` segue como destino da navegação, sem conteúdo próprio
+  (etapa O5); `/agentes` idem (O6);
 - **nenhuma tela no Portal do Cidadão**, e nenhum componente `<LocationPicker>`;
 - **nenhum teste automatizado nos portais** — a verificação de O1 e O2 foi feita contra a
   aplicação no ar, e o plano não prevê suíte de testes de interface;
@@ -615,12 +670,17 @@ Registrado explicitamente, para que a ausência não seja confundida com esqueci
 
 ## 5. Próximo passo
 
-**Etapa O4 — Painel**, do [plano de implementação](plano-de-implementacao.md#o4-painel): os
-indicadores de `GET /dashboard/summary` com destaque para as ocorrências críticas e altas em
-aberto, a distribuição por bairro, o volume por período e o recorte de cada indicador
-conduzindo à lista já filtrada.
+**Etapa O5 — Mapa**, do [plano de implementação](plano-de-implementacao.md#o5-mapa): as
+ocorrências abertas plotadas em `/mapa`, com cor por prioridade e legenda textual, resumo ao
+acionar o ponto, filtros, aviso de `truncated` e contagem das omitidas sem coordenadas.
 
-**O5, O6 e C1 também já estão liberadas** e podem correr em paralelo; pelo
+O `<ReportMap>` já existe desde O2, servindo um ponto no detalhe da ocorrência; O5 o estende
+para vários pontos. Uma questão a resolver ali: a cor por prioridade que o `RF-OP-42` pede
+esbarra no que o validador de paleta mostrou nesta etapa — crítica e alta ficam a ΔE 2,8 para
+deuteranopia. A legenda textual que o próprio requisito exige cobre o mínimo, mas vale separar
+os matizes ou acrescentar forma ao marcador.
+
+**O6 e C1 também já estão liberadas** e podem correr em paralelo; pelo
 [plano](plano-de-implementacao.md#2-ordem-adotada-e-por-quê), o Portal de Operações vem
 primeiro.
 

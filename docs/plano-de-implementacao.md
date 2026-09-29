@@ -427,11 +427,11 @@ B2, então registro público e autenticação podem ser construídos em qualquer
 
 ## 5. Cobertura dos requisitos
 
-As etapas cobrem os **334 requisitos** dos seis documentos, sem sobra:
+As etapas cobrem os **335 requisitos** dos seis documentos, sem sobra:
 
 | Aplicação | Requisitos | Etapas |
 |---|---|---|
-| API | 72 RF + 51 RNF | B0 a B7; `RF-API-71` em O2 e `RF-API-72` em O3 |
+| API | 73 RF + 51 RNF | B0 a B7; `RF-API-71` em O2, `RF-API-72` em O3 e `RF-API-73` em O4 |
 | Portal de Operações | 65 RF + 56 RNF | O1 a O7 |
 | Portal do Cidadão | 42 RF + 48 RNF | C1 a C5 |
 
@@ -448,6 +448,15 @@ As etapas cobrem os **334 requisitos** dos seis documentos, sem sobra:
 > projeto — foi ela que deixou a situação `TRIAGE` inalcançável —, e a
 > [decisão 12](arquitetura.md#5-decisões-técnicas-registradas) já estabelecera que os portais
 > não guardam cópias do que a API sabe.
+>
+> `RF-API-73` (a noção de ocorrência em aberto) nasceu em **O4**, pelo mesmo motivo: o
+> `RF-OP-10` pede destaque para as críticas e altas **ainda não concluídas**, e nem o resumo do
+> painel nem o filtro da lista sabiam separar as abertas.
+>
+> As três seguem o mesmo padrão, e vale nomeá-lo: os requisitos da API foram escritos do ponto
+> de vista da API, e os dos portais do ponto de vista das telas. As costuras aparecem
+> exatamente onde uma tela precisa de um recorte que a API não previu — e só aparecem ao
+> construir a tela, não relendo os documentos.
 
 Um requisito que não apareça em nenhuma etapa é sinal de plano incompleto, não de requisito
 dispensável.

@@ -196,6 +196,19 @@ describe('Painel, mapa e exportação (e2e)', () => {
   });
 
   describe('painel', () => {
+    async function summary(query = '') {
+      const { body } = await request(app.getHttpServer())
+        .get(`/api/v1/dashboard/summary${query}`)
+        .set('Authorization', `Bearer ${agente}`)
+        .expect(200);
+      return body;
+    }
+
+    /** Total de ocorrências críticas em uma das listas por prioridade. */
+    function criticas(linhas: Array<{ key: string; total: number }>): number {
+      return linhas.find((i) => i.key === 'CRITICAL')?.total ?? 0;
+    }
+
     it('GET /dashboard/summary devolve totais por situação, prioridade e tipo', async () => {
       await request(app.getHttpServer()).get('/api/v1/dashboard/summary').expect(401);
 
@@ -225,6 +238,46 @@ describe('Painel, mapa e exportação (e2e)', () => {
       expect(body.byPriority.some((i: { key: string }) => i.key === 'SEM_PRIORIDADE')).toBe(true);
       expect(body.byPriority.reduce((s: number, i: { total: number }) => s + i.total, 0)).toBe(
         body.total,
+      );
+    });
+
+    /**
+     * O painel destaca o que ainda exige atenção (RF-OP-10). Somar as já
+     * concluídas nesse número inflaria justamente o indicador que o agente usa
+     * para decidir o que fazer agora — daí `openByPriority` existir separado.
+     */
+    it('separa a prioridade das ocorrências em aberto das concluídas (RF-API-73)', async () => {
+      const id = await criar({ type: 'FIRE' });
+      await request(app.getHttpServer())
+        .patch(`/api/v1/reports/${id}/triage/start`)
+        .set('Authorization', `Bearer ${coord}`)
+        .expect(200);
+      await request(app.getHttpServer())
+        .patch(`/api/v1/reports/${id}/triage`)
+        .set('Authorization', `Bearer ${coord}`)
+        .send({ outcome: 'ACCEPT', priority: 'CRITICAL' })
+        .expect(200);
+
+      const antes = await summary();
+      expect(criticas(antes.openByPriority)).toBe(criticas(antes.byPriority));
+
+      await request(app.getHttpServer())
+        .patch(`/api/v1/reports/${id}/status`)
+        .set('Authorization', `Bearer ${coord}`)
+        .send({ status: 'RESOLVED', comment: 'Atendimento concluído.' })
+        .expect(200);
+
+      const depois = await summary();
+      // A concluída sai do recorte em aberto, mas continua no total.
+      expect(criticas(depois.openByPriority)).toBe(criticas(antes.openByPriority) - 1);
+      expect(criticas(depois.byPriority)).toBe(criticas(antes.byPriority));
+    });
+
+    it('o total em aberto fecha com a soma de openByPriority', async () => {
+      const body = await summary();
+
+      expect(body.openByPriority.reduce((s: number, i: { total: number }) => s + i.total, 0)).toBe(
+        body.open,
       );
     });
 

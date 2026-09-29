@@ -150,6 +150,53 @@ describe('Gestão de ocorrências (e2e)', () => {
         .expect(400);
     });
 
+    it('filtra apenas as ocorrências em aberto (RF-API-73)', async () => {
+      const aberta = await novaOcorrencia();
+      const encerrada = await emAtendimento();
+      await request(app.getHttpServer())
+        .patch(`/api/v1/reports/${encerrada}/status`)
+        .set('Authorization', `Bearer ${coord}`)
+        .send({ status: 'CANCELLED', comment: 'Duplicada de outro registro.' })
+        .expect(200);
+
+      const { body } = await request(app.getHttpServer())
+        .get(`/api/v1/reports?pageSize=100&search=${MARCA}&open=true`)
+        .set('Authorization', `Bearer ${agente}`)
+        .expect(200);
+
+      const ids = body.data.map((r: { id: string }) => r.id);
+      expect(ids).toContain(aberta);
+      expect(ids).not.toContain(encerrada);
+      for (const r of body.data) {
+        expect(['RECEIVED', 'TRIAGE', 'IN_PROGRESS']).toContain(r.status);
+      }
+    });
+
+    it('dá precedência ao status explícito sobre open', async () => {
+      const id = await emAtendimento();
+      await request(app.getHttpServer())
+        .patch(`/api/v1/reports/${id}/status`)
+        .set('Authorization', `Bearer ${coord}`)
+        .send({ status: 'RESOLVED', comment: 'Concluída.' })
+        .expect(200);
+
+      // Recorte contraditório: o mais específico vence, como no mapa.
+      const { body } = await request(app.getHttpServer())
+        .get(`/api/v1/reports?pageSize=100&search=${MARCA}&open=true&status=RESOLVED`)
+        .set('Authorization', `Bearer ${agente}`)
+        .expect(200);
+
+      expect(body.data.length).toBeGreaterThan(0);
+      for (const r of body.data) expect(r.status).toBe('RESOLVED');
+    });
+
+    it('recusa open com valor que não seja true ou false', async () => {
+      await request(app.getHttpServer())
+        .get('/api/v1/reports?open=talvez')
+        .set('Authorization', `Bearer ${agente}`)
+        .expect(400);
+    });
+
     it('não devolve a descrição na listagem, que é enxuta', async () => {
       const { body } = await request(app.getHttpServer())
         .get('/api/v1/reports')

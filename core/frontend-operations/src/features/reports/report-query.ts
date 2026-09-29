@@ -28,6 +28,8 @@ export interface ReportFilters {
   from: string;
   to: string;
   search: string;
+  /** Apenas ocorrências em aberto — o recorte que o painel usa (RF-API-73). */
+  open: boolean;
   sort: ReportSortField;
   order: SortDirection;
   page: number;
@@ -47,6 +49,7 @@ const PARAM = {
   from: 'de',
   to: 'ate',
   search: 'busca',
+  open: 'aberta',
   sort: 'ordenar',
   order: 'sentido',
   page: 'pagina',
@@ -85,6 +88,7 @@ export function parseReportFilters(params: RawSearchParams): ReportFilters {
     from: one(params, PARAM.from),
     to: one(params, PARAM.to),
     search: one(params, PARAM.search),
+    open: one(params, PARAM.open) === '1',
     sort: isReportSortField(sort) ? sort : DEFAULT_SORT,
     order: isSortDirection(order) ? order : DEFAULT_ORDER,
     page: Number.isFinite(page) && page > 0 ? page : 1,
@@ -106,6 +110,7 @@ export function toApiQuery(filters: ReportFilters) {
     from: filters.from ? `${filters.from}T00:00:00.000Z` : undefined,
     to: filters.to ? `${filters.to}T23:59:59.999Z` : undefined,
     search: filters.search || undefined,
+    open: filters.open ? 'true' : undefined,
     sort: filters.sort,
     order: filters.order,
     page: filters.page,
@@ -124,6 +129,7 @@ export function activeFilterCount(filters: ReportFilters): number {
     filters.from,
     filters.to,
     filters.search,
+    filters.open ? 'sim' : '',
   ];
   return recorte.filter(Boolean).length;
 }
@@ -149,6 +155,7 @@ export function buildReportSearch(filters: Partial<ReportFilters>): string {
   put(PARAM.from, filters.from);
   put(PARAM.to, filters.to);
   put(PARAM.search, filters.search);
+  if (filters.open) params.set(PARAM.open, '1');
 
   if (filters.sort && filters.sort !== DEFAULT_SORT) params.set(PARAM.sort, filters.sort);
   if (filters.order && filters.order !== DEFAULT_ORDER) params.set(PARAM.order, filters.order);

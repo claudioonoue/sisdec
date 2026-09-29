@@ -91,6 +91,24 @@ export function ReportFiltersForm({
         </h2>
 
         <div className="flex items-center gap-2">
+          {/*
+            O recorte "em aberto" é para onde o painel aponta (RF-OP-13), e
+            precisa ser visível e removível também aqui — senão o agente chega
+            por um indicador e não entende por que a lista está menor.
+          */}
+          <button
+            type="button"
+            aria-pressed={filters.open}
+            onClick={() => apply({ open: !filters.open })}
+            className={`rounded-md border px-3 py-1.5 text-sm font-medium transition-colors ${
+              filters.open
+                ? 'border-brand bg-brand-soft text-brand-strong'
+                : 'border-border text-ink-muted hover:border-border-strong hover:text-ink'
+            }`}
+          >
+            Em aberto
+          </button>
+
           {/* RF-OP-20: atalho para as ocorrências do próprio agente. */}
           <button
             type="button"

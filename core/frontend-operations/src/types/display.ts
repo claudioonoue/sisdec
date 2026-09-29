@@ -32,11 +32,8 @@ export const PRIORITY_TONE: Record<Priority, Tone> = {
 };
 
 /**
- * Situações em que a ocorrência ainda está em andamento. Espelha `isOpenStatus`
- * da API: são aquelas de onde parte alguma transição.
+ * Prioridades que o painel destaca como exigindo atenção (RF-OP-10).
+ *
+ * Em ordem decrescente de urgência — a ordem em que os cartões aparecem.
  */
-export const OPEN_STATUSES: readonly ReportStatus[] = ['RECEIVED', 'TRIAGE', 'IN_PROGRESS'];
-
-export function isOpenStatus(status: ReportStatus): boolean {
-  return OPEN_STATUSES.includes(status);
-}
+export const URGENT_PRIORITIES: readonly Priority[] = ['CRITICAL', 'HIGH'];

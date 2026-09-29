@@ -138,6 +138,18 @@ export function isOpenStatus(status: ReportStatus): boolean {
   return TRANSITIONS.some((t) => t.from === status);
 }
 
+/**
+ * Situações em que a ocorrência está **em aberto**.
+ *
+ * Derivada da tabela, e não escrita à mão: uma situação está aberta exatamente
+ * quando alguma transição parte dela. Antes esta lista existia copiada em dois
+ * services, e acrescentar um estado ao ciclo de vida exigiria lembrar dos dois —
+ * o tipo de esquecimento que deixou `TRIAGE` inalcançável na documentação.
+ */
+export const OPEN_STATUSES: readonly ReportStatus[] = Object.values(ReportStatus).filter(
+  isOpenStatus,
+);
+
 /** Situações que o endpoint informado consegue alcançar a partir da atual. */
 export function nextStatusesFrom(from: ReportStatus, owner: TransitionOwner): ReportStatus[] {
   return TRANSITIONS.filter((t) => t.from === from && t.owner === owner).map((t) => t.to);

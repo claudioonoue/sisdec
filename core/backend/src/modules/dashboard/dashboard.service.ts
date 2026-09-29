@@ -1,14 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { ReportStatus } from '../../generated/prisma/enums.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { OPEN_STATUSES } from '../reports/report-transitions.js';
 import type {
   CountByKeyDto,
   DashboardPeriodDto,
   DashboardSummaryDto,
 } from './dto/dashboard.dto.js';
-
-/** Situações em que a ocorrência ainda está em curso. */
-const OPEN_STATUSES = [ReportStatus.RECEIVED, ReportStatus.TRIAGE, ReportStatus.IN_PROGRESS];
 
 /**
  * Indicadores consolidados.
@@ -24,13 +21,33 @@ export class DashboardService {
   async summary(period: DashboardPeriodDto): Promise<DashboardSummaryDto> {
     const where = periodFilter(period);
 
-    const [porSituacao, porPrioridade, porTipo, total, abertas] = await Promise.all([
-      this.prisma.report.groupBy({ by: ['status'], where, _count: { _all: true } }),
-      this.prisma.report.groupBy({ by: ['priority'], where, _count: { _all: true } }),
-      this.prisma.report.groupBy({ by: ['type'], where, _count: { _all: true } }),
-      this.prisma.report.count({ where }),
-      this.prisma.report.count({ where: { ...where, status: { in: OPEN_STATUSES } } }),
-    ]);
+    const emAberto = { ...where, status: { in: [...OPEN_STATUSES] } };
+
+    /*
+     * As seis consultas correm em **uma transação com snapshot único**, e não em
+     * paralelo. Em paralelo, cada uma enxerga o banco num instante diferente, e
+     * uma ocorrência registrada no meio faz a soma por situação não fechar com o
+     * total — um painel cujos números se contradizem é pior do que um painel
+     * alguns milissegundos mais velho.
+     *
+     * `RepeatableRead` é o que garante isso: no `ReadCommitted` do PostgreSQL
+     * cada comando pega um retrato novo, mesmo dentro da transação.
+     */
+    const [porSituacao, porPrioridade, porPrioridadeAberta, porTipo, total, abertas] =
+      await this.prisma.$transaction(
+        [
+          this.prisma.report.groupBy({ by: ['status'], where, _count: { _all: true } }),
+          this.prisma.report.groupBy({ by: ['priority'], where, _count: { _all: true } }),
+          // Separado de `byPriority` de propósito: o painel destaca o que ainda
+          // exige atenção (RF-OP-10), e contar as já concluídas junto inflaria
+          // justamente o número que o agente usa para decidir o que fazer agora.
+          this.prisma.report.groupBy({ by: ['priority'], where: emAberto, _count: { _all: true } }),
+          this.prisma.report.groupBy({ by: ['type'], where, _count: { _all: true } }),
+          this.prisma.report.count({ where }),
+          this.prisma.report.count({ where: emAberto }),
+        ],
+        { isolationLevel: 'RepeatableRead' },
+      );
 
     return {
       open: abertas,
@@ -39,6 +56,7 @@ export class DashboardService {
       // A prioridade é nula antes da triagem; essas entram como "SEM_PRIORIDADE"
       // em vez de sumirem do total.
       byPriority: toCounts(porPrioridade, 'priority', 'SEM_PRIORIDADE'),
+      openByPriority: toCounts(porPrioridadeAberta, 'priority', 'SEM_PRIORIDADE'),
       byType: toCounts(porTipo, 'type'),
     };
   }

@@ -26,6 +26,17 @@ export class DashboardSummaryDto {
   @ApiProperty() total!: number;
 
   @ApiProperty({ type: [CountByKeyDto] }) byStatus!: CountByKeyDto[];
-  @ApiProperty({ type: [CountByKeyDto] }) byPriority!: CountByKeyDto[];
+
+  @ApiProperty({ type: [CountByKeyDto], description: 'Todas as ocorrências do recorte' })
+  byPriority!: CountByKeyDto[];
+
+  @ApiProperty({
+    type: [CountByKeyDto],
+    description:
+      'Apenas as ocorrências ainda em aberto (RF-API-73) — é o número que indica o que ' +
+      'ainda exige atenção, e não se obtém filtrando byPriority.',
+  })
+  openByPriority!: CountByKeyDto[];
+
   @ApiProperty({ type: [CountByKeyDto] }) byType!: CountByKeyDto[];
 }

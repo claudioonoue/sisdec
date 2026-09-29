@@ -1,7 +1,6 @@
 import type { AuthenticatedAgent } from '@/types/agent';
 import type { AgentSummary, ReportDetail } from '@/types/report';
 import { canCoordinate } from '@/types/agent';
-import { isOpenStatus } from '@/types/display';
 import { Alert } from '@/components/ui/alert';
 import { AssignForm } from './assign-form';
 import { StatusForm } from './status-form';
@@ -33,7 +32,10 @@ export function CarePanel({
   const triage = report.availableTransitions.filter((t) => t.owner !== 'status');
   const status = report.availableTransitions.filter((t) => t.owner === 'status');
 
-  const open = isOpenStatus(report.status);
+  // Se a ocorrência está em curso vem da API (RF-API-73): deduzi-lo aqui exigiria
+  // o portal manter a lista de situações finais, que é a cópia do ciclo de vida
+  // que a decisão 16 dispensou.
+  const open = report.open;
   const mayAssign = canCoordinate(agent.role) && open;
   const isAssignee = report.assignedTo?.id === agent.id;
 
