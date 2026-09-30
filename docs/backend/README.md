@@ -85,6 +85,7 @@ npm run start:dev             # http://localhost:3000
 - [API REST](api.md)
 - [Requisitos funcionais](requisitos-funcionais.md)
 - [Requisitos não funcionais](requisitos-nao-funcionais.md)
+- [Dados de demonstração](dados-de-demonstracao.md) — contas, senhas e o que cada ocorrência exercita
 - [Arquitetura geral](../arquitetura.md)
 
 ## 6. Situação

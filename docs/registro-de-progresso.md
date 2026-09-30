@@ -15,7 +15,7 @@ fundação do Portal de Operações.
 
 | Frente | Situação |
 |---|---|
-| Documentação do projeto | ✅ Completa para a etapa atual — 15 documentos |
+| Documentação do projeto | ✅ Completa para a etapa atual — 16 documentos |
 | Requisitos (RF e RNF) | ✅ 335 requisitos, nas três aplicações |
 | Contrato da API — especificação | ✅ 27 rotas especificadas e conferidas contra os requisitos |
 | Plano de implementação | ✅ 20 etapas, cobrindo os 335 requisitos |
@@ -750,6 +750,7 @@ dependência nova prevista em todo o plano é `@nestjs/throttler`.
 | [backend/modelo-de-dados.md](backend/modelo-de-dados.md) | 5 entidades, 5 enumerações, ciclo de vida com tabela de transições e 11 regras de negócio |
 | [backend/api.md](backend/api.md) | 27 rotas, com exemplos de requisição e resposta e 10 códigos de resposta |
 | [plano-de-implementacao.md](plano-de-implementacao.md) | 20 etapas, dependências, caminho crítico e riscos |
+| [backend/dados-de-demonstracao.md](backend/dados-de-demonstracao.md) | Contas, senhas e as 14 ocorrências do seed, e o que cada uma exercita |
 | 6 documentos de requisitos | Detalhados em 3.4 |
 | 3 `README.md` de aplicação + índice | Visão geral e execução de cada projeto |
 

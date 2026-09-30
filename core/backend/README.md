@@ -56,6 +56,10 @@ E 14 ocorrências cobrindo as seis situações, as quatro prioridades, seis bair
 coordenadas, identificadas e anônimas, espalhadas nos últimos 40 dias — o bastante para lista,
 filtros, painel, linha do tempo e mapa terem o que mostrar.
 
+**O conjunto está detalhado em
+[docs/backend/dados-de-demonstracao.md](../../docs/backend/dados-de-demonstracao.md)**: cada
+ocorrência, o que ela exercita e por onde começar a olhar em cada tela.
+
 **As fotos exigem a API no ar.** Sete delas, em quatro ocorrências, são enviadas pelo
 `POST /reports/:id/attachments` — o mesmo endpoint do Portal do Cidadão. O seed **não** grava
 em `UPLOAD_DIR`: só `modules/attachments` conhece caminho de arquivo
