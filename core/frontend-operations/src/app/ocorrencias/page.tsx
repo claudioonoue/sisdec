@@ -8,10 +8,12 @@ import { ApiError, userMessageFor } from '@/lib/api-error';
 import { getMetadata } from '@/lib/metadata';
 import { PAGE_SIZE, listReports } from '@/lib/reports';
 import { requireAgent } from '@/lib/session';
+import { canCoordinate } from '@/types/agent';
 import { ReportFiltersForm } from '@/features/reports/report-filters';
 import {
   type RawSearchParams,
   activeFilterCount,
+  buildReportSearch,
   parseReportFilters,
   reportsHref,
   toApiQuery,
@@ -43,6 +45,19 @@ export default async function ReportsPage({
       <PageHeader
         title="Ocorrências"
         description="Registros recebidos pela Defesa Civil, com filtros e acesso ao atendimento."
+        actions={
+          canCoordinate(agent.role) ? (
+            <a
+              href={`/ocorrencias/exportar${buildReportSearch(filters)}`}
+              // Download, e não navegação: `Link` faria o Next tentar uma
+              // transição de rota para algo que é um arquivo.
+              download
+              className="rounded-md border border-border px-3 py-2 text-sm font-medium text-ink transition-colors hover:border-border-strong"
+            >
+              Exportar CSV
+            </a>
+          ) : null
+        }
       />
 
       <ReportFiltersForm

@@ -109,7 +109,9 @@ A API precisa estar no ar, e é preciso haver ao menos um agente cadastrado —
 
 ## 9. Situação
 
-🚧 Etapas **O1** a **O6** concluídas — sessão, lista e detalhe, atendimento, painel, mapa e
-agentes. Todas as telas previstas existem; falta o fechamento (O7) do
-[plano de implementação](../plano-de-implementacao.md): exportação em CSV e a conferência dos
-requisitos não funcionais.
+✅ **Concluído** — as sete etapas (O1 a O7) do
+[plano de implementação](../plano-de-implementacao.md).
+
+Três conferências dos requisitos não funcionais continuam pendentes por exigirem um navegador:
+inspeção em 1280 px e 768 px (`RNF-OP-39`, `RNF-OP-40`), teste nos navegadores (`RNF-OP-41`) e
+teste com leitor de tela (`RNF-OP-35`).

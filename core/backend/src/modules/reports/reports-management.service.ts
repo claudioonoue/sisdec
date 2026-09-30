@@ -9,7 +9,13 @@ import { Priority, ReportStatus } from '../../generated/prisma/enums.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import type { AuthenticatedAgent } from '../auth/authenticated-agent.js';
 import { attachmentUrl } from '../attachments/attachment-url.js';
-import { isUrgentReportType } from '../metadata/metadata.labels.js';
+import {
+  PRIORITY_LABELS,
+  REPORT_CATEGORY_LABELS,
+  REPORT_STATUS_LABELS,
+  REPORT_TYPE_LABELS,
+  isUrgentReportType,
+} from '../metadata/metadata.labels.js';
 import type {
   AssignReportDto,
   ChangeStatusDto,
@@ -340,10 +346,14 @@ export class ReportsManagementService {
       for (const r of lote) {
         yield `${[
           r.protocolNumber,
-          r.category,
-          r.type,
-          r.status,
-          r.priority ?? '',
+          // Rótulos em pt-BR, e não os valores da enumeração: o CSV é aberto por
+          // um agente, e é interface como qualquer tela (RNF-OP-09). São os
+          // mesmos rótulos que `GET /metadata` serve aos portais, de modo que a
+          // planilha e a tela não divirjam.
+          REPORT_CATEGORY_LABELS[r.category],
+          REPORT_TYPE_LABELS[r.type],
+          REPORT_STATUS_LABELS[r.status],
+          r.priority ? PRIORITY_LABELS[r.priority] : 'Sem triagem',
           r.district,
           r.address,
           r.assignedTo?.name ?? '',

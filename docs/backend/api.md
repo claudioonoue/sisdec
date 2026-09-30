@@ -253,8 +253,13 @@ Aceita os mesmos filtros de `GET /reports` e devolve apenas o necessário para p
 ### Exemplo — `GET /reports/export`
 
 Aceita os mesmos filtros de `GET /reports` e responde `text/csv` com
-`Content-Disposition: attachment`, uma linha por ocorrência e cabeçalho em pt-BR. Existe para
-que a exportação **não** seja montada no navegador a partir de páginas sucessivas da listagem.
+`Content-Disposition: attachment`, uma linha por ocorrência. Existe para que a exportação
+**não** seja montada no navegador a partir de páginas sucessivas da listagem.
+
+O arquivo é **inteiramente em pt-BR** — cabeçalho e dados, com os mesmos rótulos que
+`GET /metadata` serve aos portais, de modo que a planilha e a tela não divirjam. A planilha é
+aberta por um agente, e é interface como qualquer tela (`RNF-OP-09`). Ocorrência sem prioridade
+sai como *Sem triagem*, e não como célula vazia, que se confundiria com dado faltando.
 
 ### Ocorrência em aberto
 

@@ -37,12 +37,13 @@ fundação do Portal de Operações.
 | Painel de indicadores (etapa O4) | ✅ Concluída e verificada |
 | Mapa de ocorrências (etapa O5) | ✅ Concluída e verificada |
 | Gestão de agentes (etapa O6) | ✅ Concluída e verificada |
-| **Fechamento do Portal de Operações** | ⬜ Exportação em CSV e conferência dos RNF — etapa O7 |
+| Fechamento do Portal de Operações (etapa O7) | ✅ Concluída — três conferências manuais pendentes |
+| **Portal do Cidadão** | ⬜ Apenas a página inicial do scaffold — etapas C1 a C5 |
 | **Portal do Cidadão** | ⬜ Apenas a página inicial do scaffold |
 
 Em uma frase: **a API está pronta — as 27 rotas, 282 testes no backend e 53 no portal; o
-Portal de Operações está construído — só falta o seu fechamento (O7) —, e o Portal do Cidadão
-inteiro está por fazer.**
+Portal de Operações está concluído, das sete etapas, e o Portal do Cidadão inteiro está por
+fazer.**
 
 ## 2. Linha do tempo
 
@@ -676,6 +677,46 @@ a própria conta e a dele continua ativa; o agente desativado é rotulado como i
 some de `assignable-agents` e recebe `401` no login. As contas de teste foram removidas em
 seguida.
 
+### 30 de setembro de 2026 — etapa O7: fechamento do Portal de Operações
+
+Conforme o [plano](plano-de-implementacao.md#o7-fechamento-do-portal). **Encerra o Portal de
+Operações**: as sete etapas estão concluídas.
+
+- Exportação da lista em CSV, com o recorte aplicado, restrita a coordenação e administração.
+- Conferência da [lista de RNF](frontend-operations/requisitos-nao-funcionais.md).
+
+**A exportação precisou de um *route handler*, não de um link para a API.** O token vive em
+cookie `httpOnly`, então o navegador não consegue autenticar a chamada sozinho. O servidor do
+Next lê o cookie, chama a API e **repassa o corpo em fluxo** — a API o gera lote a lote
+justamente para que a exportação não dependa do tamanho da base, e bufferizá-lo aqui desfaria
+isso. A falha também desce como arquivo: o acionamento foi um download e o navegador já saiu da
+página, então devolver HTML de erro mostraria a tela técnica que o `RNF-OP-25` proíbe.
+
+**Um defeito que só apareceu ao abrir o arquivo.** O CSV trazia `RISK_ALERT`, `IN_PROGRESS`,
+`HIGH` — o cabeçalho vinha em pt-BR desde B6, mas as linhas, não. O `RF-API-70` só prometia o
+cabeçalho; o `RNF-OP-09` é que proíbe mostrar ao agente os valores em inglês, e uma planilha
+que ele abre é interface como qualquer tela. A geração passou a usar os mesmos rótulos que
+`GET /metadata` serve aos portais, de modo que planilha e tela não divirjam, e a ausência de
+prioridade virou "Sem triagem" em vez de célula vazia — célula vazia se confunde com dado
+faltando.
+
+**A conferência de contraste pegou uma margem frágil.** Medi os dez pares texto/fundo do portal
+pela fórmula do WCAG 2.1: todos passavam, mas `success` sobre `success-soft` dava 4,51 contra o
+mínimo de 4,5 — um ajuste de matiz e quebraria. O tom foi escurecido para 6,0:1.
+
+O que foi conferido por código, na aplicação gerada: **nenhum** campo de formulário sem rótulo
+associado nas três telas com filtros; os oito cabeçalhos da tabela de ocorrências com `scope`;
+nenhuma chamada a `console` no código do portal; nenhum `dangerouslySetInnerHTML` nem
+`innerHTML`; nenhum elemento não interativo com `onClick` — o percurso por teclado se apoia em
+`a`, `button`, `select`, `input`, `details` e `dialog` nativos; só `NEXT_PUBLIC_API_URL` como
+variável de ambiente, e o `.env.example` em dia.
+
+**O que não pude conferir**, e fica registrado como tal: a inspeção em **1280 px e 768 px**
+(`RNF-OP-39`, `RNF-OP-40`), os **navegadores** (`RNF-OP-41`) e o **leitor de tela**
+(`RNF-OP-35`). Não há navegador neste ambiente; o que fiz foi conferir a estrutura que
+sustenta esses requisitos, não operá-los. São três verificações manuais que continuam
+pendentes.
+
 ## 3. O que está pronto, em detalhe
 
 ### 3.1 Infraestrutura e ambiente
@@ -693,7 +734,7 @@ seguida.
 | Aplicação | Versões | O que já roda |
 |---|---|---|
 | API | NestJS 12, Prisma 7.10, TypeScript 6, Vitest 4.1 | As 27 rotas do contrato, com prefixo `/api/v1`, CORS por `CORS_ORIGINS`, `ValidationPipe` com `whitelist` e `forbidNonWhitelisted`, e Swagger em `/api/docs` |
-| Portal de Operações | Next.js 16.3, React 19.2, Tailwind 4, Leaflet 1.9 | Etapas O1 a O6: sessão, lista e detalhe, atendimento, painel, mapa e agentes |
+| Portal de Operações | Next.js 16.3, React 19.2, Tailwind 4, Leaflet 1.9 | **Concluído** — etapas O1 a O7 |
 | Portal do Cidadão | Next.js 16.3, React 19.2, Tailwind 4, Leaflet 1.9 | Página inicial do scaffold |
 
 Dependências de domínio da API já instaladas: `@nestjs/jwt`, `passport-jwt`, `bcrypt`,
@@ -761,18 +802,23 @@ Registrado explicitamente, para que a ausência não seja confundida com esqueci
 - **nenhum teste de tela nem de Server Action no portal** — a suíte cobre as peças que decidem
   algo (48 testes); telas inteiras dependem da API no ar e seguem verificadas pelo percurso
   manual descrito em cada etapa;
-- **nenhuma exportação em CSV** — `RF-OP-24` é a etapa O7.
+- **três conferências manuais do Portal de Operações** — inspeção em 1280 px e 768 px,
+  navegadores e leitor de tela. Exigem um navegador, que não existe neste ambiente;
+- **nenhuma tela no Portal do Cidadão** além da página inicial do `create-next-app`, e nenhum
+  cliente HTTP nele.
 
 ## 5. Próximo passo
 
-**Etapa O7 — Fechamento do Portal de Operações**, do
-[plano de implementação](plano-de-implementacao.md#o7-fechamento-do-portal): a exportação em CSV
-por `GET /reports/export`, o percurso completo por teclado, o contraste AA, as regiões
-`aria-live`, a conferência em 1280 px e 768 px e a passagem pela
-[lista de RNF](frontend-operations/requisitos-nao-funcionais.md).
+**Etapa C1 — Fundação e orientação do Portal do Cidadão**, do
+[plano de implementação](plano-de-implementacao.md#c1-fundação-e-orientação): o cliente HTTP
+sobre `GET /metadata`, o layout *mobile first* a partir de 320 px, a página inicial com os dois
+caminhos — registrar e acompanhar — e o aviso destacado de **199 / 193**, e a tela de
+orientações.
 
-Depois dela resta a **Parte III** inteira, o Portal do Cidadão (C1 a C5). **C1 já está
-liberada** desde B1 e pode correr em paralelo.
+Começa a **Parte III**, que é a de barra de qualidade de interface mais alta do projeto
+(`RNF-CID-01` a `RNF-CID-25`): *mobile first*, acessibilidade AA e uso sob conexão instável.
+O Portal de Operações, concluído, é a ferramenta que permite **ver e triar** as ocorrências
+criadas ao testar o portal público.
 
 ## 6. Como manter este documento
 

@@ -174,6 +174,38 @@ describe('Painel, mapa e exportação (e2e)', () => {
       expect(linhas).toHaveLength(7);
     });
 
+    /**
+     * O CSV é aberto por um agente, e é interface como qualquer tela: o
+     * `RNF-OP-09` proíbe mostrar-lhe os valores em inglês da API. O cabeçalho já
+     * vinha em pt-BR desde B6; as linhas, não.
+     */
+    it('traz os dados em pt-BR, não os valores da enumeração', async () => {
+      const resposta = await request(app.getHttpServer())
+        .get(`/api/v1/reports/export?search=${MARCA}`)
+        .set('Authorization', `Bearer ${coord}`)
+        .expect(200);
+
+      const corpo = resposta.text;
+      for (const valor of ['RISK_ALERT', 'DANGEROUS_TREE', 'RECEIVED', 'IN_PROGRESS', 'HIGH']) {
+        expect(corpo).not.toContain(valor);
+      }
+
+      expect(corpo).toContain('Comunicação de risco');
+      expect(corpo).toContain('Árvore em situação de perigo');
+      expect(corpo).toContain('Recebida');
+    });
+
+    it('nomeia a ausência de prioridade em vez de deixar a célula vazia', async () => {
+      // Célula vazia se confunde com dado faltando; a ocorrência apenas não
+      // passou pela triagem ainda.
+      const resposta = await request(app.getHttpServer())
+        .get(`/api/v1/reports/export?search=${MARCA}&status=RECEIVED`)
+        .set('Authorization', `Bearer ${coord}`)
+        .expect(200);
+
+      expect(resposta.text).toContain('Sem triagem');
+    });
+
     it('escapa campo que contém o separador', async () => {
       await criar({ district: 'Bairro; com ponto e vírgula' });
 
