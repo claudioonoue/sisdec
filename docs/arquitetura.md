@@ -68,6 +68,12 @@ build entre os projetos.
 **Custo**: cada projeto tem o seu próprio `node_modules` e os comandos precisam ser
 executados dentro da respectiva pasta.
 
+> O `Makefile` da raiz atenua esse custo **sem** desfazer a decisão: ele entra na pasta certa
+> e chama o comando que já existe ali. Não instala, não compila e não resolve dependências —
+> apagá-lo não impede nenhum projeto de ser instalado ou executado. É um Makefile, e não um
+> `package.json` na raiz, justamente para não criar um quarto projeto Node com `node_modules`
+> próprio, que seria o acoplamento que esta decisão evita.
+
 ---
 
 ## 4. Portas de desenvolvimento
