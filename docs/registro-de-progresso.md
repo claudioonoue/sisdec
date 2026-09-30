@@ -35,12 +35,13 @@ fundação do Portal de Operações.
 | Lista e detalhe da ocorrência (etapa O2) | ✅ Concluída e verificada |
 | Atendimento da ocorrência (etapa O3) | ✅ Concluída e verificada |
 | Painel de indicadores (etapa O4) | ✅ Concluída e verificada |
-| **Telas restantes do Portal de Operações** | ⬜ Mapa e agentes — etapas O5 e O6 |
+| Mapa de ocorrências (etapa O5) | ✅ Concluída e verificada |
+| **Telas restantes do Portal de Operações** | ⬜ Gestão de agentes — etapa O6 |
 | **Portal do Cidadão** | ⬜ Apenas a página inicial do scaffold |
 
-Em uma frase: **a API está pronta — as 27 rotas, 282 testes no backend e 48 no portal; o Portal de Operações já atende
-as ocorrências do começo ao fim e tem painel, e faltam o mapa, os agentes e o Portal do Cidadão
-inteiro.**
+Em uma frase: **a API está pronta — as 27 rotas, 282 testes no backend e 53 no portal; o
+Portal de Operações atende as ocorrências do começo ao fim, com painel e mapa, e faltam a
+gestão de agentes, o fechamento e o Portal do Cidadão inteiro.**
 
 ## 2. Linha do tempo
 
@@ -604,6 +605,44 @@ mais numeroso. Não havia o que proteger: a resposta traz só `id` e `name`, os 
 agente já lê na coluna "Responsável". `PATCH /reports/:id/assign` segue restrito, e há teste e2e
 afirmando os dois lados.
 
+### 30 de setembro de 2026 — etapa O5: mapa
+
+Conforme o [plano](plano-de-implementacao.md#o5-mapa). O `<ReportMap>` já existia desde O2,
+servindo um ponto no detalhe; aqui ele passou a servir o conjunto.
+
+- `/mapa` com os pontos abertos, filtros por situação, tipo, prioridade e período, resumo ao
+  acionar o ponto com acesso ao detalhe, legenda, aviso de teto atingido e contagem das
+  omitidas sem coordenadas.
+
+**A cor por prioridade ganhou forma junto.** O `RF-OP-42` pede diferenciação por cor, e o
+validador de paleta mostrou na etapa anterior que crítica e alta ficam a **ΔE 2,8 para
+deuteranopia**. Numa lista isso é tolerável, porque o rótulo está ao lado; num mapa de
+alfinetes não há rótulo nenhum. Cada prioridade passou a ter forma própria — triângulo,
+losango, quadrado, círculo — e a ocorrência sem triagem um anel vazado. A legenda mostra as
+duas pistas juntas, e há teste afirmando que nenhuma forma se repete: se alguém acrescentar uma
+quinta prioridade e reaproveitar uma forma, a segunda pista sumiria em silêncio.
+
+Duas decisões:
+
+- **O balão é montado como elemento do DOM**, não como texto HTML. O conteúdo inclui dados
+  vindos da API, e concatenar marcação é exatamente o que o `RNF-OP-17` proíbe; com
+  `textContent` não há como um relato do cidadão virar marcação. A busca por `innerHTML` e
+  `dangerouslySetInnerHTML` no portal continua vazia;
+- **a lista dos mesmos pontos está sempre presente**, aberta por um `<details>`, e não é um
+  plano B que aparece no erro. O `RF-OP-46` pede a tela utilizável sem o mapa, e um caminho que
+  só roda na falha é um caminho que ninguém testa. Ela serve igualmente a quem navega por
+  teclado, para quem um mapa de alfinetes não diz nada.
+
+Verificado contra a API no ar: os quatro filtros recortam o mapa e o recorte atravessa para a
+lista; a legenda traz as cinco formas distintas; o `tileLayer` **não** aparece em nenhum script
+do painel, da lista nem de agentes. O aviso de teto atingido foi exercitado de verdade —
+inseri 520 ocorrências com coordenadas, a API devolveu `truncated: true` com 500 pontos, a tela
+avisou, e a carga foi removida em seguida.
+
+Um susto que não era defeito: a nota da legenda aparecia **depois** da lista no HTML. É o
+*streaming* fora de ordem do React, que emite o trecho num `<div hidden>` e o recoloca por
+script — o meu extrator de texto descartava os scripts e via a ordem crua.
+
 ## 3. O que está pronto, em detalhe
 
 ### 3.1 Infraestrutura e ambiente
@@ -621,7 +660,7 @@ afirmando os dois lados.
 | Aplicação | Versões | O que já roda |
 |---|---|---|
 | API | NestJS 12, Prisma 7.10, TypeScript 6, Vitest 4.1 | As 27 rotas do contrato, com prefixo `/api/v1`, CORS por `CORS_ORIGINS`, `ValidationPipe` com `whitelist` e `forbidNonWhitelisted`, e Swagger em `/api/docs` |
-| Portal de Operações | Next.js 16.3, React 19.2, Tailwind 4, Leaflet 1.9 | Sessão (O1); lista e detalhe (O2); atendimento (O3); painel (O4) |
+| Portal de Operações | Next.js 16.3, React 19.2, Tailwind 4, Leaflet 1.9 | Sessão (O1); lista e detalhe (O2); atendimento (O3); painel (O4); mapa (O5) |
 | Portal do Cidadão | Next.js 16.3, React 19.2, Tailwind 4, Leaflet 1.9 | Página inicial do scaffold |
 
 Dependências de domínio da API já instaladas: `@nestjs/jwt`, `passport-jwt`, `bcrypt`,
@@ -685,8 +724,8 @@ A documentação é verificada por conferências que qualquer alteração futura
 
 Registrado explicitamente, para que a ausência não seja confundida com esquecimento:
 
-- **nenhum mapa de conjunto** — `/mapa` segue como destino da navegação, sem conteúdo próprio
-  (etapa O5); `/agentes` idem (O6);
+- **nenhuma tela de gestão de agentes** — `/agentes` segue como destino da navegação, sem
+  conteúdo próprio (etapa O6);
 - **nenhuma tela no Portal do Cidadão**, e nenhum componente `<LocationPicker>`;
 - **nenhum teste de tela nem de Server Action no portal** — a suíte cobre as peças que decidem
   algo (48 testes); telas inteiras dependem da API no ar e seguem verificadas pelo percurso
@@ -695,19 +734,13 @@ Registrado explicitamente, para que a ausência não seja confundida com esqueci
 
 ## 5. Próximo passo
 
-**Etapa O5 — Mapa**, do [plano de implementação](plano-de-implementacao.md#o5-mapa): as
-ocorrências abertas plotadas em `/mapa`, com cor por prioridade e legenda textual, resumo ao
-acionar o ponto, filtros, aviso de `truncated` e contagem das omitidas sem coordenadas.
+**Etapa O6 — Gestão de agentes**, do
+[plano de implementação](plano-de-implementacao.md#o6-gestão-de-agentes): a relação em
+`/agentes` com os inativos distinguidos, o cadastro, a edição de perfil e a desativação com
+confirmação — tudo restrito ao administrador, e impedindo que ele desative a própria conta.
 
-O `<ReportMap>` já existe desde O2, servindo um ponto no detalhe da ocorrência; O5 o estende
-para vários pontos. Uma questão a resolver ali: a cor por prioridade que o `RF-OP-42` pede
-esbarra no que o validador de paleta mostrou nesta etapa — crítica e alta ficam a ΔE 2,8 para
-deuteranopia. A legenda textual que o próprio requisito exige cobre o mínimo, mas vale separar
-os matizes ou acrescentar forma ao marcador.
-
-**O6 e C1 também já estão liberadas** e podem correr em paralelo; pelo
-[plano](plano-de-implementacao.md#2-ordem-adotada-e-por-quê), o Portal de Operações vem
-primeiro.
+Depois dela resta **O7**, o fechamento do Portal de Operações, e a **Parte III** inteira, o
+Portal do Cidadão (C1 a C5). **C1 já está liberada** desde B1 e pode correr em paralelo.
 
 ## 6. Como manter este documento
 

@@ -63,6 +63,10 @@ mapa devem ser importados com `dynamic(..., { ssr: false })` e ficar isolados em
 `src/components/map/`, de modo que nenhuma tela importe `leaflet` diretamente
 (ver [decisão 08](../../docs/arquitetura.md#mapas-decisão-08)).
 
+**A prioridade no mapa é cor _e_ forma.** As cores de crítica e alta ficam a ΔE 2,8 para
+deuteranopia, e num mapa não há rótulo ao lado do ponto para desempatar. Ao acrescentar uma
+prioridade, dê-lhe uma forma própria — há teste afirmando que nenhuma se repete.
+
 ## Documentação
 
 - [Visão geral do Portal de Operações](../../docs/frontend-operations/README.md)

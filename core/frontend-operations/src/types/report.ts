@@ -110,6 +110,26 @@ export interface ReportDetail extends ReportListItem {
   availableTransitions: AvailableTransition[];
 }
 
+/** Ponto do mapa — `GET /reports/map`, em formato enxuto e sem paginação. */
+export interface MapReport {
+  id: string;
+  protocolNumber: string;
+  type: ReportType;
+  status: ReportStatus;
+  priority: Priority | null;
+  latitude: number;
+  longitude: number;
+}
+
+export interface MapResponse {
+  data: MapReport[];
+  total: number;
+  /** Ocorrências do recorte que ficaram de fora por não ter coordenadas. */
+  omittedWithoutCoordinates: number;
+  /** Verdadeiro quando o teto de registros da rota foi atingido. */
+  truncated: boolean;
+}
+
 /**
  * Ordenação aceita por `GET /reports` (RF-API-71). Os valores são do contrato da
  * API, e por isso moram aqui junto das enumerações (RNF-OP-45).

@@ -11,6 +11,8 @@ import { formatDateTime } from '@/lib/format';
 import { getMetadata } from '@/lib/metadata';
 import { getReport } from '@/lib/reports';
 import { requireAgent } from '@/lib/session';
+import { NO_PRIORITY_SHAPE, PRIORITY_SHAPE, PRIORITY_TONE } from '@/types/display';
+import { toneHex } from '@/features/map/map-legend';
 import { CarePanel } from '@/features/reports/care-panel';
 import { PriorityBadge, StatusBadge } from '@/features/reports/report-badges';
 import { ReportAttachments } from '@/features/reports/report-attachments';
@@ -116,7 +118,15 @@ export default async function ReportDetailPage({
                       id: report.id,
                       latitude: report.latitude,
                       longitude: report.longitude,
-                      title: report.protocolNumber,
+                      // A mesma cor e forma do mapa de conjunto, para que o
+                      // ponto aqui e o ponto lá sejam reconhecíveis como o mesmo.
+                      color: report.priority
+                        ? toneHex(PRIORITY_TONE[report.priority])
+                        : toneHex('neutral'),
+                      shape: report.priority
+                        ? PRIORITY_SHAPE[report.priority]
+                        : NO_PRIORITY_SHAPE,
+                      label: `Local da ocorrência ${report.protocolNumber}`,
                     },
                   ]}
                 />

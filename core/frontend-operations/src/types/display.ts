@@ -37,3 +37,32 @@ export const PRIORITY_TONE: Record<Priority, Tone> = {
  * Em ordem decrescente de urgência — a ordem em que os cartões aparecem.
  */
 export const URGENT_PRIORITIES: readonly Priority[] = ['CRITICAL', 'HIGH'];
+
+/**
+ * Todas as prioridades, da mais alta para a mais baixa. Ordem de exibição na
+ * legenda do mapa, onde uma ordem arbitrária atrapalharia a leitura.
+ */
+export const PRIORITIES_BY_URGENCY: readonly Priority[] = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'];
+
+/**
+ * Forma do marcador no mapa, por prioridade.
+ *
+ * Existe porque **a cor sozinha não basta**. Medidas com o validador de paleta,
+ * as cores de crítica e alta do portal ficam a ΔE 2,8 para deuteranopia — num
+ * mapa, sem rótulo ao lado de cada ponto, seriam o mesmo ponto. A forma é a
+ * segunda pista que o `RNF-OP-31` exige, e sobrevive à impressão em preto e
+ * branco.
+ *
+ * `Record` sem opcionais: prioridade nova sem forma **não compila**.
+ */
+export type MarkerShape = 'triangle' | 'diamond' | 'square' | 'circle' | 'ring';
+
+export const PRIORITY_SHAPE: Record<Priority, MarkerShape> = {
+  CRITICAL: 'triangle',
+  HIGH: 'diamond',
+  MEDIUM: 'square',
+  LOW: 'circle',
+};
+
+/** Ocorrência ainda sem triagem: anel vazado, distinto de qualquer prioridade. */
+export const NO_PRIORITY_SHAPE: MarkerShape = 'ring';

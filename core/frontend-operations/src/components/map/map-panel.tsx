@@ -39,3 +39,5 @@ export function MapPanel({
 }) {
   return <ReportMap points={points} label={label} height={height} zoom={zoom} />;
 }
+
+export type { MapPoint, MapPointPopup, MarkerShape } from './report-map';
