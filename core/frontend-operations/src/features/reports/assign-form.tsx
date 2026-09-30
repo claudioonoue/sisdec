@@ -1,7 +1,7 @@
 'use client';
 
 import type { AgentSummary } from '@/types/report';
-import { ActionForm } from './action-form';
+import { ActionForm } from '@/components/ui/action-form';
 import { assignReport } from './actions';
 
 const FIELD = 'w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-ink';
@@ -34,7 +34,7 @@ export function AssignForm({
   return (
     <ActionForm
       action={assignReport}
-      reportId={reportId}
+      hidden={{ reportId: reportId }}
       submitLabel={currentAssigneeId ? 'Trocar o responsável' : 'Atribuir responsável'}
       pendingLabel="Atribuindo…"
     >

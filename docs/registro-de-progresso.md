@@ -36,12 +36,13 @@ fundação do Portal de Operações.
 | Atendimento da ocorrência (etapa O3) | ✅ Concluída e verificada |
 | Painel de indicadores (etapa O4) | ✅ Concluída e verificada |
 | Mapa de ocorrências (etapa O5) | ✅ Concluída e verificada |
-| **Telas restantes do Portal de Operações** | ⬜ Gestão de agentes — etapa O6 |
+| Gestão de agentes (etapa O6) | ✅ Concluída e verificada |
+| **Fechamento do Portal de Operações** | ⬜ Exportação em CSV e conferência dos RNF — etapa O7 |
 | **Portal do Cidadão** | ⬜ Apenas a página inicial do scaffold |
 
 Em uma frase: **a API está pronta — as 27 rotas, 282 testes no backend e 53 no portal; o
-Portal de Operações atende as ocorrências do começo ao fim, com painel e mapa, e faltam a
-gestão de agentes, o fechamento e o Portal do Cidadão inteiro.**
+Portal de Operações está construído — só falta o seu fechamento (O7) —, e o Portal do Cidadão
+inteiro está por fazer.**
 
 ## 2. Linha do tempo
 
@@ -643,6 +644,38 @@ Um susto que não era defeito: a nota da legenda aparecia **depois** da lista no
 *streaming* fora de ordem do React, que emite o trecho num `<div hidden>` e o recoloca por
 script — o meu extrator de texto descartava os scripts e via a ordem crua.
 
+### 30 de setembro de 2026 — etapa O6: gestão de agentes
+
+Conforme o [plano](plano-de-implementacao.md#o6-gestão-de-agentes). Última etapa de construção
+do Portal de Operações; resta O7, o fechamento.
+
+- `/agentes` restrita ao administrador, com a relação, o cadastro, a edição de dados e perfil,
+  a redefinição de senha e a desativação com confirmação.
+
+Três decisões:
+
+- **A casca das ações virou `components/ui/action-form.tsx`**, sem saber o que é ocorrência. Ela
+  nasceu em O3 amarrada a `reportId`; agora recebe os campos ocultos de quem chama. O bloqueio
+  do botão durante o envio, a confirmação, o anúncio do resultado e a limpeza após o sucesso
+  continuam num lugar só — que é o ponto de ter a casca;
+- **cadastrar e editar usam o mesmo formulário.** A única diferença é a senha: obrigatória ao
+  cadastrar, opcional ao editar, onde preenchê-la redefine. Duas telas quase iguais divergiriam
+  na primeira alteração;
+- **a edição e a desativação ficam dentro da linha da tabela**, num `<details>`. Uma tela à
+  parte faria o administrador perder de vista quem está editando.
+
+Uma recusa que a tela passou a dar antes da API: senha com menos de 8 caracteres. A API
+responde «password deve ter ao menos 8 caracteres» — nome de campo em inglês, que o
+`RNF-OP-05` não quer na tela. O conflito de e-mail repetido, ao contrário, é repassado como
+vem: a mensagem da API já é uma frase em pt-BR, sem jargão.
+
+Verificado contra a API no ar, pelos formulários e **sem JavaScript**: a coordenadora recebe
+`404` em `/agentes`; o administrador cadastra, e o mesmo e-mail de novo devolve o conflito
+compreensível; a alteração de perfil chega ao banco; o administrador **não** consegue desativar
+a própria conta e a dele continua ativa; o agente desativado é rotulado como inativo na lista,
+some de `assignable-agents` e recebe `401` no login. As contas de teste foram removidas em
+seguida.
+
 ## 3. O que está pronto, em detalhe
 
 ### 3.1 Infraestrutura e ambiente
@@ -660,7 +693,7 @@ script — o meu extrator de texto descartava os scripts e via a ordem crua.
 | Aplicação | Versões | O que já roda |
 |---|---|---|
 | API | NestJS 12, Prisma 7.10, TypeScript 6, Vitest 4.1 | As 27 rotas do contrato, com prefixo `/api/v1`, CORS por `CORS_ORIGINS`, `ValidationPipe` com `whitelist` e `forbidNonWhitelisted`, e Swagger em `/api/docs` |
-| Portal de Operações | Next.js 16.3, React 19.2, Tailwind 4, Leaflet 1.9 | Sessão (O1); lista e detalhe (O2); atendimento (O3); painel (O4); mapa (O5) |
+| Portal de Operações | Next.js 16.3, React 19.2, Tailwind 4, Leaflet 1.9 | Etapas O1 a O6: sessão, lista e detalhe, atendimento, painel, mapa e agentes |
 | Portal do Cidadão | Next.js 16.3, React 19.2, Tailwind 4, Leaflet 1.9 | Página inicial do scaffold |
 
 Dependências de domínio da API já instaladas: `@nestjs/jwt`, `passport-jwt`, `bcrypt`,
@@ -724,8 +757,6 @@ A documentação é verificada por conferências que qualquer alteração futura
 
 Registrado explicitamente, para que a ausência não seja confundida com esquecimento:
 
-- **nenhuma tela de gestão de agentes** — `/agentes` segue como destino da navegação, sem
-  conteúdo próprio (etapa O6);
 - **nenhuma tela no Portal do Cidadão**, e nenhum componente `<LocationPicker>`;
 - **nenhum teste de tela nem de Server Action no portal** — a suíte cobre as peças que decidem
   algo (48 testes); telas inteiras dependem da API no ar e seguem verificadas pelo percurso
@@ -734,13 +765,14 @@ Registrado explicitamente, para que a ausência não seja confundida com esqueci
 
 ## 5. Próximo passo
 
-**Etapa O6 — Gestão de agentes**, do
-[plano de implementação](plano-de-implementacao.md#o6-gestão-de-agentes): a relação em
-`/agentes` com os inativos distinguidos, o cadastro, a edição de perfil e a desativação com
-confirmação — tudo restrito ao administrador, e impedindo que ele desative a própria conta.
+**Etapa O7 — Fechamento do Portal de Operações**, do
+[plano de implementação](plano-de-implementacao.md#o7-fechamento-do-portal): a exportação em CSV
+por `GET /reports/export`, o percurso completo por teclado, o contraste AA, as regiões
+`aria-live`, a conferência em 1280 px e 768 px e a passagem pela
+[lista de RNF](frontend-operations/requisitos-nao-funcionais.md).
 
-Depois dela resta **O7**, o fechamento do Portal de Operações, e a **Parte III** inteira, o
-Portal do Cidadão (C1 a C5). **C1 já está liberada** desde B1 e pode correr em paralelo.
+Depois dela resta a **Parte III** inteira, o Portal do Cidadão (C1 a C5). **C1 já está
+liberada** desde B1 e pode correr em paralelo.
 
 ## 6. Como manter este documento
 

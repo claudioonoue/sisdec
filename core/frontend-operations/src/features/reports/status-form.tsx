@@ -4,7 +4,7 @@ import { useState } from 'react';
 import type { AvailableTransition } from '@/types/report';
 import { useMetadata } from '@/features/metadata/metadata-provider';
 import { labelFor } from '@/lib/enum-label';
-import { ActionForm } from './action-form';
+import { ActionForm } from '@/components/ui/action-form';
 import { changeStatus } from './actions';
 import { PublicCommentWarning } from './public-comment-warning';
 
@@ -34,7 +34,7 @@ export function StatusForm({
   return (
     <ActionForm
       action={changeStatus}
-      reportId={reportId}
+      hidden={{ reportId: reportId }}
       submitLabel={`Marcar como ${label.toLowerCase()}`}
       pendingLabel="Registrando…"
       tone="danger"

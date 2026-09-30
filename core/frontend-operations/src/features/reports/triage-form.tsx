@@ -5,7 +5,7 @@ import type { AvailableTransition, ReportDetail } from '@/types/report';
 import { FORWARDING_OUTCOME, triageOutcomeFor } from '@/types/report';
 import { useMetadata } from '@/features/metadata/metadata-provider';
 import { labelFor } from '@/lib/enum-label';
-import { ActionForm } from './action-form';
+import { ActionForm } from '@/components/ui/action-form';
 import { concludeTriage, startTriage } from './actions';
 import { PublicCommentWarning } from './public-comment-warning';
 
@@ -33,7 +33,7 @@ export function TriageForm({
     return (
       <ActionForm
         action={startTriage}
-        reportId={report.id}
+        hidden={{ reportId: report.id }}
         submitLabel="Assumir a triagem"
         pendingLabel="Assumindo…"
       >
@@ -69,7 +69,7 @@ function ConcludeTriageForm({
   return (
     <ActionForm
       action={concludeTriage}
-      reportId={report.id}
+      hidden={{ reportId: report.id }}
       submitLabel={forwarding ? 'Encaminhar para atendimento' : 'Declarar improcedente'}
       pendingLabel="Concluindo…"
       tone={forwarding ? 'default' : 'danger'}

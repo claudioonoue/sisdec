@@ -1,4 +1,6 @@
 import { cache } from 'react';
+import type { Agent } from '@/types/agent';
+import type { Paginated } from '@/types/api';
 import type { AgentSummary } from '@/types/report';
 import type { CountByKey } from '@/types/dashboard';
 import { ApiError } from './api-error';
@@ -48,3 +50,14 @@ export const getDistricts = cache(async (): Promise<string[]> => {
     throw error;
   }
 });
+
+/**
+ * Cadastro completo de agentes — `GET /agents`, restrito ao administrador.
+ *
+ * Distinta de `getAssignableAgents`, que devolve só `id` e `name` a qualquer
+ * agente: esta traz e-mail, perfil e situação de ativação, e é o que a tela de
+ * gestão precisa (RF-OP-47).
+ */
+export function listAgents(page = 1): Promise<Paginated<Agent>> {
+  return apiRequest<Paginated<Agent>>('/agents', { query: { page, pageSize: 100 } });
+}

@@ -109,6 +109,7 @@ A API precisa estar no ar, e é preciso haver ao menos um agente cadastrado —
 
 ## 9. Situação
 
-🚧 Etapas **O1** a **O5** concluídas — sessão, lista e detalhe, atendimento, painel e mapa. O
-ciclo de vida da ocorrência é operável ponta a ponta. Falta a gestão de agentes (O6) e o
-fechamento (O7) do [plano de implementação](../plano-de-implementacao.md).
+🚧 Etapas **O1** a **O6** concluídas — sessão, lista e detalhe, atendimento, painel, mapa e
+agentes. Todas as telas previstas existem; falta o fechamento (O7) do
+[plano de implementação](../plano-de-implementacao.md): exportação em CSV e a conferência dos
+requisitos não funcionais.

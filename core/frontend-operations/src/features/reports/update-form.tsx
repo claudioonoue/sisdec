@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ActionForm } from './action-form';
+import { ActionForm } from '@/components/ui/action-form';
 import { addUpdate } from './actions';
 
 const FIELD = 'w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-ink';
@@ -19,7 +19,7 @@ export function UpdateForm({ reportId }: { reportId: string }) {
   return (
     <ActionForm
       action={addUpdate}
-      reportId={reportId}
+      hidden={{ reportId: reportId }}
       submitLabel="Registrar andamento"
       pendingLabel="Registrando…"
     >

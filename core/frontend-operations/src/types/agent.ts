@@ -15,6 +15,18 @@ export interface LoginResponse {
 }
 
 /**
+ * Agente no cadastro — `GET /agents` e as respostas de escrita.
+ *
+ * `active` e não "excluído": o agente é **desativado**, nunca removido, para que
+ * o histórico das ocorrências continue apontando para quem agiu.
+ */
+export interface Agent extends AuthenticatedAgent {
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
  * Os predicados de perfil moram junto dos tipos porque comparar com `'ADMIN'` é
  * escrever um valor de enumeração: por `RNF-OP-45`, esses literais não podem
  * aparecer fora de `types/`. As telas perguntam `isAdmin(agent.role)`.

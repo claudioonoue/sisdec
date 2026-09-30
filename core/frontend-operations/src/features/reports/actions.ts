@@ -6,7 +6,7 @@ import { FORWARDING_OUTCOME } from '@/types/report';
 import { ApiError, userMessageFor } from '@/lib/api-error';
 import { apiRequest } from '@/lib/api-client';
 import { requireAgent } from '@/lib/session';
-import type { ActionState } from './action-state';
+import type { ActionState } from '@/lib/action-state';
 
 /**
  * Ações de atendimento da ocorrência.

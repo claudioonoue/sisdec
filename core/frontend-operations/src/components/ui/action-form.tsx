@@ -1,14 +1,14 @@
 'use client';
 
 import { useActionState, useEffect, useRef, type ReactNode } from 'react';
-import { Alert } from '@/components/ui/alert';
-import { type ActionState, initialActionState } from './action-state';
+import { type ActionState, initialActionState } from '@/lib/action-state';
+import { Alert } from './alert';
 
 /**
- * Casca comum das ações de atendimento.
+ * Casca comum das ações que escrevem na API.
  *
- * Concentra o que todas as ações precisam fazer igual, e que erraríamos de
- * formas diferentes se cada formulário resolvesse por conta:
+ * Concentra o que todas precisam fazer igual, e que erraríamos de formas
+ * diferentes se cada formulário resolvesse por conta:
  *
  * - **RNF-OP-28** — o botão é bloqueado durante a requisição, para que dois
  *   acionamentos não registrem dois andamentos;
@@ -20,7 +20,7 @@ import { type ActionState, initialActionState } from './action-state';
  */
 export function ActionForm({
   action,
-  reportId,
+  hidden,
   submitLabel,
   pendingLabel,
   confirmation,
@@ -29,7 +29,8 @@ export function ActionForm({
   children,
 }: {
   action: (state: ActionState, formData: FormData) => Promise<ActionState>;
-  reportId: string;
+  /** Campos que a ação precisa e que não são digitados — o id do registro. */
+  hidden: Record<string, string>;
   submitLabel: string;
   pendingLabel: string;
   /** Pergunta de confirmação. Sem ela, a ação é executada direto. */
@@ -56,7 +57,9 @@ export function ActionForm({
       }}
       className="space-y-3"
     >
-      <input type="hidden" name="reportId" value={reportId} />
+      {Object.entries(hidden).map(([name, value]) => (
+        <input key={name} type="hidden" name={name} value={value} />
+      ))}
 
       {typeof children === 'function' ? children(state) : children}
 
