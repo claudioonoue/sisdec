@@ -97,4 +97,15 @@ npm run dev                   # http://localhost:3002 (porta já fixada no scrip
 
 ## 8. Situação
 
-🚧 Pasta criada, aplicação ainda não gerada.
+🚧 Em construção — **etapa C1 concluída** (fundação e orientação).
+
+| Tela | Rota | Situação |
+|---|---|---|
+| Início | `/` | ✅ Dois caminhos e aviso de emergência |
+| Orientações | `/orientacoes` | ✅ Situações urgentes vindas de `GET /metadata` |
+| Registrar | `/registrar` | ⬜ Etapa C2 |
+| Confirmação | `/registrar/confirmacao` | ⬜ Etapa C4 |
+| Acompanhar | `/acompanhar` | ⬜ Etapa C4 |
+
+Fundação pronta: cliente HTTP único em `lib/`, tipos da API em `types/`, tokens de cor com
+contraste AA conferido por teste, área de toque de 44 px e fronteira de erro. 41 testes.

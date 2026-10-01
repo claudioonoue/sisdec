@@ -6,9 +6,8 @@ O que já foi construído no SISDEC, o que ainda não existe e qual é o próxim
 > [plano de implementação](plano-de-implementacao.md). Registra **estado**, não intenção —
 > um item só é marcado como pronto quando está verificado e commitado.
 
-Última atualização: **1º de outubro de 2026** — API concluída (B0 a B7) e **Portal de
-Operações concluído** (O1 a O7), com os atalhos de desenvolvimento e o conjunto de
-demonstração.
+Última atualização: **1º de outubro de 2026** — API e Portal de Operações concluídos, e
+**etapa C1** do Portal do Cidadão.
 
 ---
 
@@ -41,18 +40,20 @@ demonstração.
 | Fechamento do Portal de Operações (etapa O7) | ✅ Concluída — três conferências manuais pendentes |
 | Conjunto de dados de demonstração | ✅ `make seed-demo`, documentado em [dados-de-demonstracao.md](backend/dados-de-demonstracao.md) |
 | Atalhos de desenvolvimento | ✅ `Makefile` na raiz, sem acoplar os três projetos |
-| **Portal do Cidadão** | ⬜ Apenas a página inicial do scaffold — etapas C1 a C5 |
+| Fundação e orientação do Portal do Cidadão (etapa C1) | ✅ Concluída e verificada |
+| **Portal do Cidadão — registro e acompanhamento** | ⬜ Etapas C2 a C5 |
 
-Em uma frase: **a API e o Portal de Operações estão prontos — as 27 rotas, 284 testes no
-backend e 53 no portal; o Portal do Cidadão inteiro está por fazer.**
+Em uma frase: **a API e o Portal de Operações estão prontos; o Portal do Cidadão já tem
+fundação, página inicial e orientações — falta o formulário de registro e o acompanhamento.**
 
 | Métrica | Hoje |
 |---|---|
 | Rotas da API implementadas | 27 de 27 do contrato |
 | Testes no backend | 160 unitários + 124 end-to-end |
 | Testes no Portal de Operações | 53 |
+| Testes no Portal do Cidadão | 41 |
 | Requisitos especificados | 335, dos quais 248 das duas aplicações já prontas |
-| Etapas do plano concluídas | 15 de 20 |
+| Etapas do plano concluídas | 16 de 20 |
 
 ## 2. Linha do tempo
 
@@ -747,6 +748,49 @@ Dois acréscimos de apoio, fora da sequência de etapas do plano.
   que esperar de cada tela — informação que, sem documento, viveria só na cabeça de quem
   escreveu o seed.
 
+### 1º de outubro de 2026 — etapa C1: fundação e orientação do Portal do Cidadão
+
+Conforme o [plano](plano-de-implementacao.md#c1-fundação-e-orientação). Começa a **Parte III**.
+
+- Cliente HTTP único em `lib/`, sobre `NEXT_PUBLIC_API_URL`, com tempo limite de 15 s e
+  tradução das falhas para texto que o cidadão entende. Consome **apenas** `GET /metadata`.
+- Layout *mobile first* a partir de 320 px, com atalho "ir para o conteúdo", cabeçalho que dá
+  acesso às orientações de qualquer tela e rodapé com os telefones.
+- Página inicial com os dois caminhos — registrar e acompanhar — e o aviso de **199 / 193**.
+- `/orientacoes`, com as situações que exigem ligação imediata, o que fazer antes da chegada da
+  equipe e como ajudar o atendimento.
+- 41 testes.
+
+Quatro decisões:
+
+- **O aviso de emergência vem antes dos dois caminhos**, na página inicial. Se a pessoa está
+  diante de um risco imediato, a informação mais útil da página não é como registrar uma
+  ocorrência. Os números são links `tel:`, para que um toque no celular já inicie a chamada.
+- **Os telefones vivem em um só lugar** (`lib/emergency.ts`), porque aparecem em várias telas e
+  dentro de mensagens de erro. Um número divergente em uma delas seria um defeito grave —
+  alguém pode ligar. Há teste conferindo os dois números e o formato de discagem.
+- **A lista de situações urgentes vem da API**, dos tipos marcados como `urgent`. Escrevê-la à
+  mão faria esta página divergir do formulário de registro, que usa a mesma marcação para
+  reforçar o aviso — e divergir justamente sobre o que é urgente.
+- **O contraste é medido por teste**, sobre o próprio `globals.css`: dez pares texto/fundo pela
+  fórmula do WCAG 2.1, mais o branco sobre os fundos de botão. Um ajuste de matiz passa a ser
+  medido, em vez de depender de alguém lembrar de refazer a conta à mão. A área de toque de
+  44 px é aplicada por seletor de elemento, para que um botão novo nasça com ela.
+
+**Um defeito de comportamento que só apareceu ao rodar a aplicação.** A página de orientações
+era pré-gerada no build. Com a API fora do ar nesse momento, a **tela de falha era assada na
+página** e servida assim por uma hora inteira, mesmo com a API já de volta — e esta é a página
+que diz quando ligar 199. Ela passou a ser renderizada por requisição, mantendo o cache de uma
+hora apenas na chamada a `GET /metadata`: o conteúdo é quase todo estático, então o custo é
+baixo, e a página volta sozinha quando a API volta.
+
+**Uma verificação minha estava errada, e quase passou.** Ao testar o caso frio — sem cache e sem
+API —, a página aparecia completa, o que eu interpretei como degradação elegante. Era uma
+instância antiga do servidor, que não havia morrido: a nova falhava com `EADDRINUSE` e eu lia a
+velha, com os metadados em memória. Só notei ao conferir o log do processo. Refeito o teste com
+o servidor certo, o comportamento é o previsto: mensagem compreensível, telefones repetidos e
+nenhum erro técnico.
+
 ## 3. O que está pronto, em detalhe
 
 ### 3.1 Infraestrutura e ambiente
@@ -765,7 +809,7 @@ Dois acréscimos de apoio, fora da sequência de etapas do plano.
 |---|---|---|
 | API | NestJS 12, Prisma 7.10, TypeScript 6, Vitest 4.1 | As 27 rotas do contrato, com prefixo `/api/v1`, CORS por `CORS_ORIGINS`, `ValidationPipe` com `whitelist` e `forbidNonWhitelisted`, e Swagger em `/api/docs` |
 | Portal de Operações | Next.js 16.3, React 19.2, Tailwind 4, Leaflet 1.9 | **Concluído** — etapas O1 a O7 |
-| Portal do Cidadão | Next.js 16.3, React 19.2, Tailwind 4, Leaflet 1.9 | Página inicial do scaffold |
+| Portal do Cidadão | Next.js 16.3, React 19.2, Tailwind 4, Leaflet 1.9 | Início e orientações — etapa C1 |
 
 Dependências da API acrescentadas durante a implementação, ambas registradas na etapa em que
 entraram: **`@prisma/adapter-pg`** (B0 — o Prisma 7 exige um *driver adapter* explícito, o que o
@@ -869,16 +913,14 @@ Registrado explicitamente, para que a ausência não seja confundida com esqueci
 
 ## 5. Próximo passo
 
-**Etapa C1 — Fundação e orientação do Portal do Cidadão**, do
-[plano de implementação](plano-de-implementacao.md#c1-fundação-e-orientação): o cliente HTTP
-sobre `GET /metadata`, o layout *mobile first* a partir de 320 px, a página inicial com os dois
-caminhos — registrar e acompanhar — e o aviso destacado de **199 / 193**, e a tela de
-orientações.
+**Etapa C2 — Formulário de registro, sem o mapa**, do
+[plano de implementação](plano-de-implementacao.md#c2-formulário-de-registro-sem-o-mapa): a
+máquina de etapas com indicação de progresso, as cinco etapas do formulário e o envio por
+`POST /reports` seguido de `POST /reports/:id/attachments`.
 
-Começa a **Parte III**, que é a de barra de qualidade de interface mais alta do projeto
-(`RNF-CID-01` a `RNF-CID-25`): *mobile first*, acessibilidade AA e uso sob conexão instável.
-O Portal de Operações, concluído, é a ferramenta que permite **ver e triar** as ocorrências
-criadas ao testar o portal público.
+Construído **antes** do mapa de propósito: o `RNF-CID-26` exige que o registro funcione quando o
+Leaflet não carrega, e começar sem o mapa garante que esse caminho seja o padrão, não um
+tratamento de exceção acrescentado depois.
 
 ## 6. Como manter este documento
 
