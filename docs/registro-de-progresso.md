@@ -6,8 +6,9 @@ O que já foi construído no SISDEC, o que ainda não existe e qual é o próxim
 > [plano de implementação](plano-de-implementacao.md). Registra **estado**, não intenção —
 > um item só é marcado como pronto quando está verificado e commitado.
 
-Última atualização: **29 de setembro de 2026** — API concluída (B0 a B7) e **etapa O1**, a
-fundação do Portal de Operações.
+Última atualização: **1º de outubro de 2026** — API concluída (B0 a B7) e **Portal de
+Operações concluído** (O1 a O7), com os atalhos de desenvolvimento e o conjunto de
+demonstração.
 
 ---
 
@@ -15,7 +16,7 @@ fundação do Portal de Operações.
 
 | Frente | Situação |
 |---|---|
-| Documentação do projeto | ✅ Completa para a etapa atual — 16 documentos |
+| Documentação do projeto | ✅ Completa para a etapa atual — 17 documentos |
 | Requisitos (RF e RNF) | ✅ 335 requisitos, nas três aplicações |
 | Contrato da API — especificação | ✅ 27 rotas especificadas e conferidas contra os requisitos |
 | Plano de implementação | ✅ 20 etapas, cobrindo os 335 requisitos |
@@ -38,12 +39,20 @@ fundação do Portal de Operações.
 | Mapa de ocorrências (etapa O5) | ✅ Concluída e verificada |
 | Gestão de agentes (etapa O6) | ✅ Concluída e verificada |
 | Fechamento do Portal de Operações (etapa O7) | ✅ Concluída — três conferências manuais pendentes |
+| Conjunto de dados de demonstração | ✅ `make seed-demo`, documentado em [dados-de-demonstracao.md](backend/dados-de-demonstracao.md) |
+| Atalhos de desenvolvimento | ✅ `Makefile` na raiz, sem acoplar os três projetos |
 | **Portal do Cidadão** | ⬜ Apenas a página inicial do scaffold — etapas C1 a C5 |
-| **Portal do Cidadão** | ⬜ Apenas a página inicial do scaffold |
 
-Em uma frase: **a API está pronta — as 27 rotas, 282 testes no backend e 53 no portal; o
-Portal de Operações está concluído, das sete etapas, e o Portal do Cidadão inteiro está por
-fazer.**
+Em uma frase: **a API e o Portal de Operações estão prontos — as 27 rotas, 284 testes no
+backend e 53 no portal; o Portal do Cidadão inteiro está por fazer.**
+
+| Métrica | Hoje |
+|---|---|
+| Rotas da API implementadas | 27 de 27 do contrato |
+| Testes no backend | 160 unitários + 124 end-to-end |
+| Testes no Portal de Operações | 53 |
+| Requisitos especificados | 335, dos quais 248 das duas aplicações já prontas |
+| Etapas do plano concluídas | 15 de 20 |
 
 ## 2. Linha do tempo
 
@@ -587,7 +596,8 @@ acessível, valor por barra e tabela alternativa aberta por `<details>`.
 
 Duas coisas fora do plano, ambas pedidas depois de O4.
 
-**Suíte de testes do Portal de Operações** — 48 testes, Vitest + Testing Library. O alvo são as
+**Suíte de testes do Portal de Operações** — 48 testes nesta data, Vitest + Testing Library;
+as etapas O5 a O7 a levaram a 53. O alvo são as
 peças que **decidem** algo, não as telas inteiras: o recorte lido da URL e a sua ida e volta, a
 tradução de falhas da API, os rótulos das enumerações, os predicados de perfil, a formatação de
 datas no fuso fixado, e os dois componentes do painel. Telas e Server Actions ficam de fora —
@@ -717,6 +727,26 @@ variável de ambiente, e o `.env.example` em dia.
 sustenta esses requisitos, não operá-los. São três verificações manuais que continuam
 pendentes.
 
+### 30 de setembro de 2026 — atalhos de desenvolvimento e documentação do conjunto de demonstração
+
+Dois acréscimos de apoio, fora da sequência de etapas do plano.
+
+- **`Makefile` na raiz**, com `make setup` para a primeira execução do zero e `make dev` para
+  subir banco, API e os dois portais juntos. Ele **não é um sistema de build**: só entra na
+  pasta certa e chama o comando que já existe ali.
+
+  Foi um `Makefile`, e não um `package.json` na raiz, de propósito: um `package.json` ali
+  criaria um quarto projeto Node, com `node_modules` e resolução de dependências próprios —
+  exatamente o acoplamento que a [decisão 01](arquitetura.md#5-decisões-técnicas-registradas)
+  evita ao manter os três projetos de `core/` independentes. Apagar o `Makefile` não impede
+  nenhum deles de ser instalado ou executado, e é esse o teste de que nada foi acoplado.
+
+- **[dados-de-demonstracao.md](backend/dados-de-demonstracao.md)**, descrevendo o que
+  `make seed-demo` cria: as contas de cada perfil, as ocorrências em situações diferentes e as
+  fotos. Existe porque quem for avaliar o trabalho precisa saber com que credenciais entrar e o
+  que esperar de cada tela — informação que, sem documento, viveria só na cabeça de quem
+  escreveu o seed.
+
 ## 3. O que está pronto, em detalhe
 
 ### 3.1 Infraestrutura e ambiente
@@ -737,11 +767,29 @@ pendentes.
 | Portal de Operações | Next.js 16.3, React 19.2, Tailwind 4, Leaflet 1.9 | **Concluído** — etapas O1 a O7 |
 | Portal do Cidadão | Next.js 16.3, React 19.2, Tailwind 4, Leaflet 1.9 | Página inicial do scaffold |
 
-Dependências de domínio da API já instaladas: `@nestjs/jwt`, `passport-jwt`, `bcrypt`,
-`class-validator`, `@nestjs/swagger`, `@prisma/client` e os tipos do `multer`. A única
-dependência nova prevista em todo o plano é `@nestjs/throttler`.
+Dependências da API acrescentadas durante a implementação, ambas registradas na etapa em que
+entraram: **`@prisma/adapter-pg`** (B0 — o Prisma 7 exige um *driver adapter* explícito, o que o
+plano não previa) e **`@nestjs/throttler`** (B3). As demais já vinham do scaffold:
+`@nestjs/jwt`, `passport-jwt`, `bcrypt`, `class-validator`, `@nestjs/swagger`, `@prisma/client`
+e os tipos do `multer`.
 
-### 3.3 Documentação
+### 3.3 Telas do Portal de Operações
+
+Sete etapas concluídas, com 53 testes nas peças que decidem algo:
+
+| Tela | Rota | O que faz |
+|---|---|---|
+| Login | `/login` | E-mail e senha, token em cookie `httpOnly`, guarda de rotas e expiração |
+| Painel | `/` | Indicadores por situação, prioridade e tipo, com destaque para as críticas em aberto |
+| Lista de ocorrências | `/ocorrencias` | Filtros combináveis refletidos na URL, busca por protocolo, paginação e exportação em CSV |
+| Detalhe | `/ocorrencias/[id]` | Relato, fotos, mapa do ponto, dados do cidadão ou marca de anônima, e histórico |
+| Atendimento | `/ocorrencias/[id]` | Triagem em duas etapas, atribuição, conclusão e andamentos |
+| Mapa | `/mapa` | Ocorrências abertas plotadas, cor por prioridade com legenda textual |
+| Agentes | `/agentes` | Cadastro, alteração de perfil e desativação — só administrador |
+
+As três conferências manuais pendentes estão na seção 4.
+
+### 3.4 Documentação
 
 | Documento | Conteúdo |
 |---|---|
@@ -751,10 +799,10 @@ dependência nova prevista em todo o plano é `@nestjs/throttler`.
 | [backend/api.md](backend/api.md) | 27 rotas, com exemplos de requisição e resposta e 10 códigos de resposta |
 | [plano-de-implementacao.md](plano-de-implementacao.md) | 20 etapas, dependências, caminho crítico e riscos |
 | [backend/dados-de-demonstracao.md](backend/dados-de-demonstracao.md) | Contas, senhas e as 14 ocorrências do seed, e o que cada uma exercita |
-| 6 documentos de requisitos | Detalhados em 3.4 |
+| 6 documentos de requisitos | Detalhados em 3.5 |
 | 3 `README.md` de aplicação + índice | Visão geral e execução de cada projeto |
 
-### 3.4 Requisitos
+### 3.5 Requisitos
 
 | Aplicação | Funcionais | Não funcionais | Prefixo |
 |---|---|---|---|
@@ -766,7 +814,7 @@ dependência nova prevista em todo o plano é `@nestjs/throttler`.
 Cada requisito tem identificador permanente e prioridade; cada RNF tem ainda a forma de
 verificação. Cada documento de RF registra também o escopo negativo da versão.
 
-### 3.5 Verificação cruzada e decisões que ela gerou
+### 3.6 Verificação cruzada e decisões que ela gerou
 
 A conferência entre requisitos, contrato e modelo de dados apontou 21 divergências, em quatro
 grupos: contradições de contrato (8), campos que precisavam ser anuláveis (3), lacunas no
@@ -783,7 +831,7 @@ contrato (6) e correções menores (4). Todas resolvidas. As de maior alcance:
 `priority`, `resolvedAt` e `comment` passaram a ser anuláveis no modelo de dados — os três
 eram obrigatórios em um esquema que só os preenche depois.
 
-### 3.6 Conferências automatizadas em vigor
+### 3.7 Conferências automatizadas em vigor
 
 A documentação é verificada por conferências que qualquer alteração futura deve manter:
 
@@ -795,18 +843,29 @@ A documentação é verificada por conferências que qualquer alteração futura
 - toda decisão citada existe no registro da arquitetura;
 - os 335 requisitos estão cobertos por alguma etapa do plano.
 
+E, no código:
+
+- o Swagger gerado tem resumo, resposta de sucesso, `400` em toda rota com corpo, `401` em toda
+  rota autenticada e `500` em todas — 27 operações, 33 esquemas, zero lacunas;
+- as rotas implementadas conferem com as tabelas de [api.md](backend/api.md) nos dois sentidos;
+- nenhum acesso a disco fora de `modules/attachments`;
+- nenhuma rotina que altere ou remova um `ReportUpdate`;
+- nenhum rótulo de enumeração fixado no código dos portais.
+
 ## 4. O que ainda não existe
 
 Registrado explicitamente, para que a ausência não seja confundida com esquecimento:
 
-- **nenhuma tela no Portal do Cidadão**, e nenhum componente `<LocationPicker>`;
-- **nenhum teste de tela nem de Server Action no portal** — a suíte cobre as peças que decidem
-  algo (48 testes); telas inteiras dependem da API no ar e seguem verificadas pelo percurso
-  manual descrito em cada etapa;
-- **três conferências manuais do Portal de Operações** — inspeção em 1280 px e 768 px,
-  navegadores e leitor de tela. Exigem um navegador, que não existe neste ambiente;
-- **nenhuma tela no Portal do Cidadão** além da página inicial do `create-next-app`, e nenhum
-  cliente HTTP nele.
+- **nenhuma tela no Portal do Cidadão** além da página inicial do `create-next-app` — sem
+  cliente HTTP, sem tipos da API e sem o componente `<LocationPicker>`; são as etapas C1 a C5;
+- **nenhum teste de tela nem de Server Action no Portal de Operações** — os 53 testes cobrem as
+  peças que decidem algo; telas inteiras dependem da API no ar e seguem verificadas pelo
+  percurso manual descrito em cada etapa;
+- **três conferências manuais do Portal de Operações** — inspeção em 1280 px e 768 px
+  (`RNF-OP-39`, `RNF-OP-40`), navegadores (`RNF-OP-41`) e leitor de tela (`RNF-OP-35`). Exigem
+  um navegador, que não existe neste ambiente;
+- **nenhuma publicação na internet**: tudo roda em `localhost`, conforme a
+  [decisão 10](arquitetura.md#5-decisões-técnicas-registradas).
 
 ## 5. Próximo passo
 
