@@ -7,7 +7,7 @@ O que já foi construído no SISDEC, o que ainda não existe e qual é o próxim
 > um item só é marcado como pronto quando está verificado e commitado.
 
 Última atualização: **1º de outubro de 2026** — API e Portal de Operações concluídos, e
-**etapas C1 a C4** do Portal do Cidadão.
+**as 20 etapas do plano concluídas**.
 
 ---
 
@@ -44,19 +44,20 @@ O que já foi construído no SISDEC, o que ainda não existe e qual é o próxim
 | Formulário de registro, sem o mapa (etapa C2) | ✅ Concluída e verificada |
 | Mapa e localização (etapa C3) | ✅ Concluída e verificada |
 | Protocolo e acompanhamento (etapa C4) | ✅ Concluída e verificada |
-| **Fechamento do Portal do Cidadão** | ⬜ Etapa C5 — a última do plano |
+| Fechamento do Portal do Cidadão (etapa C5) | ✅ Concluída — conferências de navegador pendentes |
+| **Conferências que exigem navegador** | ⬜ Responsividade em larguras reais, navegadores e leitor de tela |
 
-Em uma frase: **o sistema funciona ponta a ponta — o cidadão registra, acompanha por protocolo
-e os agentes atendem; falta apenas o fechamento de qualidade do portal público.**
+Em uma frase: **as 20 etapas do plano estão concluídas** — 27 rotas, 284 testes no backend, 53
+no Portal de Operações e 181 no do Cidadão. **Resta o que exige um navegador de verdade.**
 
 | Métrica | Hoje |
 |---|---|
 | Rotas da API implementadas | 27 de 27 do contrato |
 | Testes no backend | 160 unitários + 124 end-to-end |
 | Testes no Portal de Operações | 53 |
-| Testes no Portal do Cidadão | 162 |
+| Testes no Portal do Cidadão | 181 |
 | Requisitos especificados | 335, dos quais 248 das duas aplicações já prontas |
-| Etapas do plano concluídas | 19 de 20 |
+| Etapas do plano concluídas | **20 de 20** |
 
 ## 2. Linha do tempo
 
@@ -919,6 +920,56 @@ formato de data como `29/09/2026 09:00`, e o `Intl` em pt-BR produz vírgula —
 Corrigida a expectativa, não o código. A asserção agora é sobre a forma, não sobre o valor: a hora
 depende do fuso de quem lê, e fixá-la amarraria o teste à máquina que o roda.
 
+### 1º de outubro de 2026 — etapa C5: fechamento do Portal do Cidadão
+
+Conforme o [plano](plano-de-implementacao.md#c5-fechamento-do-portal). **Encerra as 20 etapas do
+plano.**
+
+- Redução das fotos no navegador antes do envio (`RNF-CID-23`), com as decisões em funções puras
+  e o desenho no canvas isolado.
+- Conferência de contraste ampliada de 10 para **16 pares** texto/fundo, levantados das classes
+  efetivamente usadas nas telas.
+- Pacote inicial medido, comprimido: **172 KB** no início e **181 KB** no registro, contra o teto
+  de 300 KB do `RNF-CID-25`. O Leaflet não entra em nenhuma página.
+- 19 testes novos; **181** no portal.
+
+Três decisões sobre a compressão:
+
+- **O tipo do arquivo é preservado.** JPEG continua JPEG. Trocar o formato faria o conteúdo
+  divergir do que o nome diz — a API decide pelo conteúdo, então um `.png` recodificado como JPEG
+  seria aceito, mas o registro ficaria confuso de ler.
+- **A validação ocorre antes da redução**, sobre o arquivo original. É o tamanho que a pessoa
+  escolheu que vale para o limite; reduzir primeiro faria um arquivo acima do teto passar em
+  silêncio.
+- **A compressão nunca lança.** É uma otimização: formato que o navegador não decodifica, memória
+  insuficiente, canvas bloqueado — em todos os casos o original segue válido, e o registro não pode
+  depender disso (`RNF-CID-26`). Também não troca o arquivo por um ganho menor que 5%, nem quando o
+  resultado ficou maior, o que acontece ao recodificar PNG pequeno.
+
+**Um risco de layout que a conferência encontrou.** O nome do arquivo recusado na lista de fotos
+não tinha quebra permitida: um nome longo e sem espaços — comum em foto de celular — estouraria a
+largura em 320 px, exatamente o que o `RNF-CID-08` proíbe. Corrigido com `break-words`, e a
+verificação varreu todos os pontos que escrevem texto longo no DOM: nenhum outro ficou de fora.
+
+Conferido por código, na aplicação gerada: **nenhum** campo de formulário sem rótulo associado;
+`lang="pt-BR"`, atalho para o conteúdo e `<main>` identificado; `fieldset` com `legend` em cada
+etapa; regiões `aria-live` nas mensagens; nenhuma chamada a `console`; nenhum
+`dangerouslySetInnerHTML` nem `innerHTML`; nenhum elemento não interativo com `onClick` — o
+percurso por teclado se apoia em `a`, `button`, `select`, `input`, `textarea` e `label` nativos;
+nenhum `tabIndex` positivo; o anel de foco definido uma vez em `:focus-visible`; só
+`NEXT_PUBLIC_API_URL` como variável de ambiente.
+
+Verificado contra a pilha no ar: as seis rotas respondem, a inexistente dá `404`, e com a API fora
+do ar — **sem cache e com o processo certo confirmado pelo PID e pelo log**, lição da etapa C1 —
+as telas que dependem dela mostram falha compreensível com os telefones de emergência, enquanto a
+página inicial, estática, segue respondendo.
+
+**O que não pude conferir**, e fica registrado como tal: o percurso por teclado operado de fato, o
+leitor de tela (`RNF-CID-15`, `RNF-CID-18`), a inspeção em larguras reais (`RNF-CID-08`,
+`RNF-CID-10`), os navegadores (`RNF-CID-11`) e a medição de carregamento em 3G simulado
+(`RNF-CID-21`). Conferi a estrutura que sustenta esses requisitos; operá-los exige um navegador,
+que não existe neste ambiente. Somam-se às três pendências equivalentes do Portal de Operações.
+
 ## 3. O que está pronto, em detalhe
 
 ### 3.1 Infraestrutura e ambiente
@@ -937,7 +988,7 @@ depende do fuso de quem lê, e fixá-la amarraria o teste à máquina que o roda
 |---|---|---|
 | API | NestJS 12, Prisma 7.10, TypeScript 6, Vitest 4.1 | As 27 rotas do contrato, com prefixo `/api/v1`, CORS por `CORS_ORIGINS`, `ValidationPipe` com `whitelist` e `forbidNonWhitelisted`, e Swagger em `/api/docs` |
 | Portal de Operações | Next.js 16.3, React 19.2, Tailwind 4, Leaflet 1.9 | **Concluído** — etapas O1 a O7 |
-| Portal do Cidadão | Next.js 16.3, React 19.2, Tailwind 4, Leaflet 1.9 | Todas as telas — etapas C1 a C4 |
+| Portal do Cidadão | Next.js 16.3, React 19.2, Tailwind 4, Leaflet 1.9 | **Concluído** — etapas C1 a C5 |
 
 Dependências da API acrescentadas durante a implementação, ambas registradas na etapa em que
 entraram: **`@prisma/adapter-pg`** (B0 — o Prisma 7 exige um *driver adapter* explícito, o que o
@@ -1028,8 +1079,10 @@ E, no código:
 
 Registrado explicitamente, para que a ausência não seja confundida com esquecimento:
 
-- **no Portal do Cidadão**, falta o fechamento de acessibilidade e desempenho (etapa C5) —
-  percurso por teclado, leitor de tela, medição de carregamento e compressão das fotos;
+- **as conferências que exigem um navegador**, nos dois portais: responsividade em larguras
+  reais, navegadores e leitor de tela. Conferi a estrutura que sustenta esses requisitos —
+  rótulos, regiões, elementos nativos, contraste medido — mas não os operei, porque não há
+  navegador neste ambiente;
 - **`RF-OP-08`** — voltar à tela pretendida depois de um login provocado por expiração de
   sessão — **não foi implementado**. É *Desejável*, e o Portal de Operações foi encerrado em O7
   sem ele; ficou sem registro até a conferência de 1º de outubro. Hoje a expiração leva ao login
@@ -1045,13 +1098,19 @@ Registrado explicitamente, para que a ausência não seja confundida com esqueci
 
 ## 5. Próximo passo
 
-**Etapa C5 — Fechamento do Portal do Cidadão**, do
-[plano de implementação](plano-de-implementacao.md#c5-fechamento-do-portal): percurso do registro
-apenas pelo teclado, leitor de tela nas mensagens, conferência de contraste e área de toque,
-medição de carregamento em 3G simulado e compressão das fotos no navegador.
+**As 20 etapas do plano estão concluídas.** O que resta não é etapa, e sim verificação:
 
-É a **última etapa do plano**. Parte dela depende de navegador — o que já está registrado como
-pendência das três conferências manuais do outro portal.
+1. **As conferências que exigem um navegador**, nos dois portais — responsividade em 1280 px,
+   768 px e 320 px, navegadores atuais e leitor de tela. São sete requisitos no total, listados na
+   seção 4, e precisam de alguém com um navegador aberto.
+2. **`RF-OP-08`** (*Desejável*) — voltar à tela pretendida após um login por expiração de sessão.
+   Não foi implementado; está registrado na seção 4.
+3. Dois *Desejáveis* do Portal do Cidadão que não entraram: **`RF-CID-29`** (imprimir ou salvar a
+   confirmação — a tela é uma rota própria e imprime, mas não há botão dedicado) e
+   **`RF-CID-36`** (compartilhar o endereço da consulta).
+
+Nada disso bloqueia o uso do sistema: ele funciona ponta a ponta em `localhost`, com o conjunto
+de demonstração descrito em [dados-de-demonstracao.md](backend/dados-de-demonstracao.md).
 
 ## 6. Como manter este documento
 

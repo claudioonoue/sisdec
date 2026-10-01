@@ -35,18 +35,28 @@ function ratio(foreground: string, background: string): number {
   return (lighter + 0.05) / (darker + 0.05);
 }
 
-/** Pares texto/fundo efetivamente usados nas telas da etapa C1. */
+/**
+ * Pares texto/fundo efetivamente usados nas telas, levantados da lista de classes
+ * presentes em `src/`. Acrescentar uma combinação nova sem medi-la aqui é o que
+ * este teste existe para impedir.
+ */
 const PARES: ReadonlyArray<[string, string, string]> = [
   ['ink', 'surface', 'texto principal'],
   ['ink', 'surface-muted', 'texto sobre o fundo da página'],
   ['ink-muted', 'surface', 'texto secundário'],
+  ['ink-muted', 'surface-muted', 'texto secundário em bloco destacado'],
   ['brand', 'surface', 'links e títulos de ação'],
   ['brand', 'brand-soft', 'cartão de acompanhar, ao passar o mouse'],
+  ['brand', 'surface-muted', 'link sobre o fundo da página'],
   ['emergency', 'surface', 'título do aviso de emergência'],
   ['emergency', 'emergency-soft', 'aviso de emergência sobre o seu fundo'],
-  ['danger', 'surface', 'mensagem de falha'],
+  ['danger', 'surface', 'mensagem de falha e botão de remover foto'],
   ['danger', 'danger-soft', 'mensagem de falha sobre o seu fundo'],
-  ['ink', 'emergency-soft', 'parágrafo dentro do aviso'],
+  ['ink', 'emergency-soft', 'parágrafo dentro do aviso e alerta de guardar o protocolo'],
+  ['ink', 'danger-soft', 'texto do aviso sobre fotos recusadas'],
+  ['ink', 'success-soft', 'protocolo em destaque na confirmação'],
+  ['success', 'surface', 'confirmação de cópia'],
+  ['success', 'success-soft', 'título da confirmação e situação resolvida'],
 ];
 
 describe('contraste dos tokens (WCAG 2.1 AA)', () => {

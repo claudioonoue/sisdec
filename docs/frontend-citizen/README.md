@@ -97,7 +97,7 @@ npm run dev                   # http://localhost:3002 (porta já fixada no scrip
 
 ## 8. Situação
 
-🚧 Em construção — **etapas C1 a C4 concluídas**; falta o fechamento (C5).
+✅ **Concluído** — etapas C1 a C5.
 
 | Tela | Rota | Situação |
 |---|---|---|
@@ -110,4 +110,7 @@ npm run dev                   # http://localhost:3002 (porta já fixada no scrip
 
 Fundação pronta: cliente HTTP único em `lib/`, tipos da API em `types/`, tokens de cor com
 contraste AA conferido por teste, área de toque de 44 px e fronteira de erro. O Leaflet fica
-isolado em `components/map/`, fora do pacote inicial. 162 testes.
+isolado em `components/map/`, fora do pacote inicial. As fotos são reduzidas no navegador
+antes do envio. 181 testes.
+
+Pacote inicial medido, comprimido: 172 KB no início, 181 KB no registro — teto de 300 KB.

@@ -99,15 +99,16 @@ A documentação completa está em [docs/README.md](docs/README.md).
 
 ## Status
 
-🚧 Em desenvolvimento.
+✅ **As 20 etapas do plano estão concluídas.**
 
 - ✅ Estrutura do repositório e documentação
-- ✅ Bootstrap das três aplicações (NestJS + dois Next.js), com dependências instaladas
 - ✅ Requisitos funcionais e não funcionais das três aplicações (335 requisitos)
 - ✅ Plano de implementação em 20 etapas
 - ✅ Modelagem do banco no Prisma e migração inicial
 - ✅ **API completa** — as 27 rotas do contrato, 160 testes unitários e 124 end-to-end
 - ✅ **Portal de Operações completo** — etapas O1 a O7, com 53 testes
-- ⬜ Portal do Cidadão
+- ✅ **Portal do Cidadão completo** — etapas C1 a C5, com 181 testes
+- ⬜ Conferências que exigem um navegador: responsividade em larguras reais, navegadores e
+  leitor de tela. Estão listadas em [docs/registro-de-progresso.md](docs/registro-de-progresso.md)
 
 O estado detalhado está em [docs/registro-de-progresso.md](docs/registro-de-progresso.md).

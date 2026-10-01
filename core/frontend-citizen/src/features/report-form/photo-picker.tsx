@@ -1,7 +1,8 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import type { UploadLimits } from '@/types/metadata';
+import { compressImage } from './image-compression';
 import { describeAcceptedTypes, formatFileSize, selectPhotos, type PhotoRejection } from './photos';
 
 /**
@@ -25,17 +26,31 @@ export function PhotoPicker({
   onReject: (rejections: PhotoRejection[]) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const [preparing, setPreparing] = useState(false);
 
-  function handleSelection(event: React.ChangeEvent<HTMLInputElement>) {
+  async function handleSelection(event: React.ChangeEvent<HTMLInputElement>) {
     const incoming = Array.from(event.target.files ?? []);
     const { accepted, rejected } = selectPhotos(photos, incoming, limits);
 
-    if (accepted.length > 0) onChange([...photos, ...accepted]);
     onReject(rejected);
 
     // O input é limpo para que escolher o mesmo arquivo de novo volte a disparar
     // o evento — sem isso, remover e reescolher a mesma foto não funcionaria.
     if (inputRef.current) inputRef.current.value = '';
+
+    if (accepted.length === 0) return;
+
+    // A validação acontece **antes** da redução, sobre o arquivo original: é o
+    // tamanho que a pessoa escolheu que vale para o limite, e reduzir primeiro
+    // faria um arquivo acima do teto passar silenciosamente.
+    setPreparing(true);
+
+    try {
+      const prepared = await Promise.all(accepted.map((file) => compressImage(file, limits)));
+      onChange([...photos, ...prepared]);
+    } finally {
+      setPreparing(false);
+    }
   }
 
   const restantes = limits.maxFiles - photos.length;
@@ -59,10 +74,16 @@ export function PhotoPicker({
           multiple
           accept={limits.acceptedMimeTypes.join(',')}
           aria-describedby="fotos-ajuda"
-          disabled={restantes <= 0}
+          disabled={restantes <= 0 || preparing}
           onChange={handleSelection}
           className="w-full rounded-md border border-border-strong bg-surface p-2 text-sm"
         />
+
+        {/* A redução de uma foto de celular leva um instante perceptível; sem este
+            retorno a tela pareceria parada (RNF-CID-24). */}
+        <p aria-live="polite" className="text-sm font-semibold text-ink-muted">
+          {preparing ? 'Preparando as fotos para o envio…' : ''}
+        </p>
 
         {restantes <= 0 ? (
           <p className="text-sm text-ink-muted">
@@ -76,7 +97,12 @@ export function PhotoPicker({
       {rejections.length > 0 ? (
         <ul role="alert" className="space-y-1 rounded-md bg-danger-soft p-3">
           {rejections.map((rejection) => (
-            <li key={`${rejection.fileName}-${rejection.reason}`} className="text-sm text-danger">
+            <li
+              key={`${rejection.fileName}-${rejection.reason}`}
+              // `break-words`: o nome do arquivo vem do aparelho e pode ser longo
+              // e sem espaços, o que estouraria o layout em 320 px (RNF-CID-08).
+              className="break-words text-sm text-danger"
+            >
               <strong>{rejection.fileName}</strong>: {rejection.reason}
             </li>
           ))}
