@@ -17,10 +17,11 @@ describe('SubmittedPanel', () => {
     expect(screen.getByText(/única forma/i)).toBeDefined();
   });
 
-  it('leva ao acompanhamento já com o protocolo preenchido', () => {
+  it('leva à tela de confirmação já com o protocolo', () => {
     render(<SubmittedPanel protocolNumber={PROTOCOLO} />);
 
-    const link = screen.getByRole('link', { name: /acompanhar/i });
+    const link = screen.getByRole('link', { name: /confirmação/i });
+    expect(link.getAttribute('href')).toContain('/registrar/confirmacao');
     expect(link.getAttribute('href')).toContain(encodeURIComponent(PROTOCOLO));
   });
 

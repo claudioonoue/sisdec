@@ -7,7 +7,7 @@ O que já foi construído no SISDEC, o que ainda não existe e qual é o próxim
 > um item só é marcado como pronto quando está verificado e commitado.
 
 Última atualização: **1º de outubro de 2026** — API e Portal de Operações concluídos, e
-**etapas C1 a C3** do Portal do Cidadão.
+**etapas C1 a C4** do Portal do Cidadão.
 
 ---
 
@@ -43,19 +43,20 @@ O que já foi construído no SISDEC, o que ainda não existe e qual é o próxim
 | Fundação e orientação do Portal do Cidadão (etapa C1) | ✅ Concluída e verificada |
 | Formulário de registro, sem o mapa (etapa C2) | ✅ Concluída e verificada |
 | Mapa e localização (etapa C3) | ✅ Concluída e verificada |
-| **Portal do Cidadão — acompanhamento** | ⬜ Etapas C4 e C5 |
+| Protocolo e acompanhamento (etapa C4) | ✅ Concluída e verificada |
+| **Fechamento do Portal do Cidadão** | ⬜ Etapa C5 — a última do plano |
 
-Em uma frase: **a API e o Portal de Operações estão prontos; o cidadão já registra uma
-ocorrência com fotos e ponto no mapa — falta o acompanhamento por protocolo.**
+Em uma frase: **o sistema funciona ponta a ponta — o cidadão registra, acompanha por protocolo
+e os agentes atendem; falta apenas o fechamento de qualidade do portal público.**
 
 | Métrica | Hoje |
 |---|---|
 | Rotas da API implementadas | 27 de 27 do contrato |
 | Testes no backend | 160 unitários + 124 end-to-end |
 | Testes no Portal de Operações | 53 |
-| Testes no Portal do Cidadão | 134 |
+| Testes no Portal do Cidadão | 162 |
 | Requisitos especificados | 335, dos quais 248 das duas aplicações já prontas |
-| Etapas do plano concluídas | 18 de 20 |
+| Etapas do plano concluídas | 19 de 20 |
 
 ## 2. Linha do tempo
 
@@ -877,6 +878,47 @@ Verificado contra a pilha no ar: uma ocorrência registrada com ponto grava as c
 banco e **aparece no mapa do Portal de Operações**; uma sem ponto é aceita e contada em
 `omittedWithoutCoordinates`.
 
+### 1º de outubro de 2026 — etapa C4: protocolo e acompanhamento
+
+Conforme o [plano](plano-de-implementacao.md#c4-protocolo-e-acompanhamento). **O sistema funciona
+ponta a ponta**: o cidadão registra, recebe o protocolo e acompanha; os agentes atendem.
+
+- `/registrar/confirmacao` com o protocolo como elemento de maior destaque, botão de copiar com
+  confirmação visual e o alerta de que é a única forma de acompanhar.
+- `/acompanhar` com a consulta por protocolo, tolerante a caixa e espaços.
+- `/acompanhar/[protocolo]` com a situação, a explicação do que ela significa, os dados públicos
+  e o histórico visível.
+- 28 testes novos; 162 no portal.
+
+Quatro decisões:
+
+- **O protocolo vai na URL da confirmação.** É o que permite recarregar a página, imprimi-la ou
+  salvá-la (`RF-CID-29`) — não aconteceria se ele vivesse só na memória do formulário.
+- **A tela distingue número malformado de ocorrência inexistente.** São problemas diferentes e a
+  orientação muda: num caso mostrar a forma esperada, no outro sugerir conferir um dígito. Um
+  `404` genérico para os dois seria mais simples e menos útil.
+- **O botão de copiar tem recurso alternativo.** `navigator.clipboard` não existe em contexto
+  inseguro nem em todo navegador, e aqui a falha é grave: sem o número a pessoa perde o único meio
+  de acompanhar. Há `document.execCommand` como alternativa e, se nem ele funcionar, a orientação
+  de anotar à mão — nunca um silêncio.
+- **A situação vem com uma explicação, além do rótulo.** A API devolve "Em triagem", que é curto
+  por natureza; a frase diz o que está acontecendo. É a diferença entre informar e comunicar — e
+  na improcedência ela remete ao histórico, onde está o motivo.
+
+**A privacidade foi verificada por ausência, contra a pilha no ar.** Criei uma ocorrência
+identificada, levei-a a `IN_PROGRESS`, acrescentei um andamento visível e outro interno, e
+procurei no HTML da página: o andamento interno, o nome, o e-mail, o telefone, o endereço, a
+descrição e a prioridade — em inglês e em pt-BR — **nenhum apareceu**. É o tipo de requisito que
+só se confirma procurando o que não deve estar lá.
+
+O tipo `PublicReport` ajuda nisso: ele declara exatamente os campos que a API devolve, então a
+tela não tem como exibir um dado pessoal por descuido — ele não existe no tipo.
+
+**Um teste meu estava errado de novo**, e pela mesma razão da etapa anterior: eu afirmei o
+formato de data como `29/09/2026 09:00`, e o `Intl` em pt-BR produz vírgula — `29/09/2026, 09:00`.
+Corrigida a expectativa, não o código. A asserção agora é sobre a forma, não sobre o valor: a hora
+depende do fuso de quem lê, e fixá-la amarraria o teste à máquina que o roda.
+
 ## 3. O que está pronto, em detalhe
 
 ### 3.1 Infraestrutura e ambiente
@@ -895,7 +937,7 @@ banco e **aparece no mapa do Portal de Operações**; uma sem ponto é aceita e 
 |---|---|---|
 | API | NestJS 12, Prisma 7.10, TypeScript 6, Vitest 4.1 | As 27 rotas do contrato, com prefixo `/api/v1`, CORS por `CORS_ORIGINS`, `ValidationPipe` com `whitelist` e `forbidNonWhitelisted`, e Swagger em `/api/docs` |
 | Portal de Operações | Next.js 16.3, React 19.2, Tailwind 4, Leaflet 1.9 | **Concluído** — etapas O1 a O7 |
-| Portal do Cidadão | Next.js 16.3, React 19.2, Tailwind 4, Leaflet 1.9 | Início, orientações e registro com mapa — etapas C1 a C3 |
+| Portal do Cidadão | Next.js 16.3, React 19.2, Tailwind 4, Leaflet 1.9 | Todas as telas — etapas C1 a C4 |
 
 Dependências da API acrescentadas durante a implementação, ambas registradas na etapa em que
 entraram: **`@prisma/adapter-pg`** (B0 — o Prisma 7 exige um *driver adapter* explícito, o que o
@@ -986,8 +1028,8 @@ E, no código:
 
 Registrado explicitamente, para que a ausência não seja confundida com esquecimento:
 
-- **no Portal do Cidadão**, faltam a tela dedicada de confirmação e o acompanhamento por
-  protocolo (etapa C4) e o fechamento de acessibilidade e desempenho (etapa C5);
+- **no Portal do Cidadão**, falta o fechamento de acessibilidade e desempenho (etapa C5) —
+  percurso por teclado, leitor de tela, medição de carregamento e compressão das fotos;
 - **`RF-OP-08`** — voltar à tela pretendida depois de um login provocado por expiração de
   sessão — **não foi implementado**. É *Desejável*, e o Portal de Operações foi encerrado em O7
   sem ele; ficou sem registro até a conferência de 1º de outubro. Hoje a expiração leva ao login
@@ -1003,12 +1045,13 @@ Registrado explicitamente, para que a ausência não seja confundida com esqueci
 
 ## 5. Próximo passo
 
-**Etapa C4 — Protocolo e acompanhamento**, do
-[plano de implementação](plano-de-implementacao.md#c4-protocolo-e-acompanhamento): a tela
-`/registrar/confirmacao` com o protocolo em destaque e botão de copiar, e `/acompanhar` com a
-consulta por protocolo e a situação com o histórico visível.
+**Etapa C5 — Fechamento do Portal do Cidadão**, do
+[plano de implementação](plano-de-implementacao.md#c5-fechamento-do-portal): percurso do registro
+apenas pelo teclado, leitor de tela nas mensagens, conferência de contraste e área de toque,
+medição de carregamento em 3G simulado e compressão das fotos no navegador.
 
-É a última etapa de função do projeto: depois dela só falta o fechamento de qualidade em C5.
+É a **última etapa do plano**. Parte dela depende de navegador — o que já está registrado como
+pendência das três conferências manuais do outro portal.
 
 ## 6. Como manter este documento
 

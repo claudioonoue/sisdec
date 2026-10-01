@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import type { PublicMetadata } from '@/types/metadata';
 import type { ReportCategory, ReportType } from '@/types/enums';
@@ -27,6 +28,7 @@ import type { PhotoRejection } from './photos';
  * um só, e a etapa atual é apenas qual parte dele está visível.
  */
 export function ReportForm({ metadata }: { metadata: PublicMetadata }) {
+  const router = useRouter();
   const [step, setStep] = useState(0);
   const [draft, setDraft] = useState<ReportDraft>(emptyDraft);
   const [photos, setPhotos] = useState<File[]>([]);
@@ -79,7 +81,21 @@ export function ReportForm({ metadata }: { metadata: PublicMetadata }) {
     for (const photo of photos) formData.append('photos', photo);
 
     startTransition(async () => {
-      setResult(await submitReport(formData));
+      const submitted = await submitReport(formData);
+
+      if (submitted.status === 'success' && submitted.protocolNumber && !submitted.photosFailed) {
+        // Caminho normal: a tela de confirmação é uma rota própria, para
+        // sobreviver a uma recarga e poder ser impressa ou salva (RF-CID-29).
+        router.push(
+          `/registrar/confirmacao?protocolo=${encodeURIComponent(submitted.protocolNumber)}`,
+        );
+        return;
+      }
+
+      // Com as fotos recusadas, o aviso fica aqui: levá-lo na URL para a próxima
+      // tela exigiria passar o motivo da falha por parâmetro, e um texto em query
+      // string é frágil e fácil de forjar (RF-CID-24).
+      setResult(submitted);
     });
   }
 

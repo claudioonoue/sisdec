@@ -1,5 +1,10 @@
 import { apiRequest } from './api-client';
-import type { AttachmentCreated, CreateReportPayload, ReportCreated } from '@/types/report';
+import type {
+  AttachmentCreated,
+  CreateReportPayload,
+  PublicReport,
+  ReportCreated,
+} from '@/types/report';
 
 /** `POST /reports` — registra a ocorrência e devolve o protocolo (RF-CID-20). */
 export function createReport(payload: CreateReportPayload): Promise<ReportCreated> {
@@ -21,4 +26,15 @@ export function attachPhotos(reportId: string, photos: File[]): Promise<Attachme
     method: 'POST',
     formData,
   });
+}
+
+/**
+ * `GET /reports/protocol/:protocolNumber` — consulta pública (RF-CID-32).
+ *
+ * Sem cache: a situação é justamente o que muda, e servir uma resposta guardada
+ * mostraria um andamento desatualizado a quem acabou de abrir a página para ver se
+ * algo mudou.
+ */
+export function fetchReportByProtocol(protocolNumber: string): Promise<PublicReport> {
+  return apiRequest<PublicReport>(`/reports/protocol/${encodeURIComponent(protocolNumber)}`);
 }
