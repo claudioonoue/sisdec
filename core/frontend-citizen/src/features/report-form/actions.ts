@@ -4,6 +4,7 @@ import { ApiError, userMessageFor } from '@/lib/api-error';
 import { attachPhotos, createReport } from '@/lib/reports';
 import type { ReportCategory, ReportType } from '@/types/enums';
 import type { CreateReportPayload } from '@/types/report';
+import { parseCoordinates } from './coordinates';
 import type { SubmitResult } from './submit-result';
 
 /**
@@ -68,6 +69,9 @@ function text(formData: FormData, field: string): string {
 
 function payloadFrom(formData: FormData): CreateReportPayload {
   const anonymous = formData.get('anonymous') === 'true';
+  // Par incompleto ou inválido vira ausência: a API recusaria, e o endereço já
+  // basta para o registro seguir (RF-CID-13).
+  const point = parseCoordinates(text(formData, 'latitude'), text(formData, 'longitude'));
   const name = text(formData, 'name');
   const email = text(formData, 'email');
   const phone = text(formData, 'phone');
@@ -83,6 +87,7 @@ function payloadFrom(formData: FormData): CreateReportPayload {
     description: text(formData, 'description'),
     address: text(formData, 'address'),
     district: text(formData, 'district'),
+    ...(point && { latitude: point.latitude, longitude: point.longitude }),
     ...(identifica && {
       citizen: {
         name,

@@ -7,7 +7,7 @@ O que já foi construído no SISDEC, o que ainda não existe e qual é o próxim
 > um item só é marcado como pronto quando está verificado e commitado.
 
 Última atualização: **1º de outubro de 2026** — API e Portal de Operações concluídos, e
-**etapas C1 e C2** do Portal do Cidadão.
+**etapas C1 a C3** do Portal do Cidadão.
 
 ---
 
@@ -42,19 +42,20 @@ O que já foi construído no SISDEC, o que ainda não existe e qual é o próxim
 | Atalhos de desenvolvimento | ✅ `Makefile` na raiz, sem acoplar os três projetos |
 | Fundação e orientação do Portal do Cidadão (etapa C1) | ✅ Concluída e verificada |
 | Formulário de registro, sem o mapa (etapa C2) | ✅ Concluída e verificada |
-| **Portal do Cidadão — mapa e acompanhamento** | ⬜ Etapas C3 a C5 |
+| Mapa e localização (etapa C3) | ✅ Concluída e verificada |
+| **Portal do Cidadão — acompanhamento** | ⬜ Etapas C4 e C5 |
 
-Em uma frase: **a API e o Portal de Operações estão prontos; o cidadão já consegue registrar
-uma ocorrência com fotos e receber o protocolo — faltam o mapa e o acompanhamento.**
+Em uma frase: **a API e o Portal de Operações estão prontos; o cidadão já registra uma
+ocorrência com fotos e ponto no mapa — falta o acompanhamento por protocolo.**
 
 | Métrica | Hoje |
 |---|---|
 | Rotas da API implementadas | 27 de 27 do contrato |
 | Testes no backend | 160 unitários + 124 end-to-end |
 | Testes no Portal de Operações | 53 |
-| Testes no Portal do Cidadão | 107 |
+| Testes no Portal do Cidadão | 134 |
 | Requisitos especificados | 335, dos quais 248 das duas aplicações já prontas |
-| Etapas do plano concluídas | 17 de 20 |
+| Etapas do plano concluídas | 18 de 20 |
 
 ## 2. Linha do tempo
 
@@ -835,6 +836,47 @@ Sobre a tela de confirmação: o protocolo já aparece em destaque ao final do e
 fluxo de C2 esteja completo. A rota dedicada `/registrar/confirmacao`, com botão de copiar e o
 alerta de guardar o número, é a etapa **C4**.
 
+### 1º de outubro de 2026 — etapa C3: mapa e localização
+
+Conforme o [plano](plano-de-implementacao.md#c3-mapa-e-localização). O ponto no mapa fecha o
+registro; o ciclo cidadão → agente está completo.
+
+- `<LocationPicker>` em `components/map/`, carregado com `dynamic(..., { ssr: false })`.
+- Botão "usar a minha localização", e marcação à mão por toque ou arrasto do marcador.
+- Coordenadas no rascunho, no envio e na revisão; registro segue aceito sem elas.
+- 11 testes novos; 134 no portal.
+
+Quatro decisões:
+
+- **O Leaflet está em exatamente um arquivo**, e os seus tipos aparecem só dentro da
+  implementação — a interface pública trabalha com `{ latitude, longitude }`. Conferido por
+  busca: nenhuma menção a `leaflet` fora de `components/map/`.
+- **O mapa só é montado quando a pessoa pede.** Serve a dois requisitos de uma vez: quem vai
+  apenas acompanhar um protocolo não baixa o Leaflet (`RNF-CID-22` — está num chunk próprio de
+  148 K, e o HTML inicial de `/registrar` não o menciona), e deixa explícito que o ponto é
+  opcional (`RF-CID-13`).
+- **A localização é pedida apenas por acionamento** (`RNF-CID-33`). Nada no carregamento toca em
+  `navigator.geolocation` — o navegador não deve exibir pedido de permissão sem a pessoa ter
+  pedido. Há teste conferindo que montar o componente não chama `getCurrentPosition`.
+- **As coordenadas aparecem em texto, ao lado do mapa.** Quem usa leitor de tela não tem como ler
+  a posição de um marcador; sem isso, não haveria confirmação de que a escolha foi registrada.
+
+**Duas regras de lint que apontaram erros reais**, e não ruído. `react-hooks/refs` pegou uma
+escrita em referência durante a renderização — o React pode descartar uma renderização pela
+metade, e a escrita passou para um efeito. `react-hooks/set-state-in-effect` pegou um estado que
+só existia para espelhar a presença de `navigator.geolocation`; a verificação passou para o
+momento do acionamento e o estado desapareceu. Sem suporte, o botão continua visível e explica o
+motivo, em vez de sumir sem dizer por quê.
+
+**Um teste meu estava escrito errado.** Dois casos falhavam por não encontrar o `role="alert"`:
+eu usava `.click()` cru, que não libera a atualização de estado do React para a asserção
+seguinte. Trocado por `fireEvent.click`, que envolve em `act`. Os testes que já passavam o
+faziam porque verificavam a chamada do mock, não o que a tela mostra depois.
+
+Verificado contra a pilha no ar: uma ocorrência registrada com ponto grava as coordenadas no
+banco e **aparece no mapa do Portal de Operações**; uma sem ponto é aceita e contada em
+`omittedWithoutCoordinates`.
+
 ## 3. O que está pronto, em detalhe
 
 ### 3.1 Infraestrutura e ambiente
@@ -853,7 +895,7 @@ alerta de guardar o número, é a etapa **C4**.
 |---|---|---|
 | API | NestJS 12, Prisma 7.10, TypeScript 6, Vitest 4.1 | As 27 rotas do contrato, com prefixo `/api/v1`, CORS por `CORS_ORIGINS`, `ValidationPipe` com `whitelist` e `forbidNonWhitelisted`, e Swagger em `/api/docs` |
 | Portal de Operações | Next.js 16.3, React 19.2, Tailwind 4, Leaflet 1.9 | **Concluído** — etapas O1 a O7 |
-| Portal do Cidadão | Next.js 16.3, React 19.2, Tailwind 4, Leaflet 1.9 | Início, orientações e registro — etapas C1 e C2 |
+| Portal do Cidadão | Next.js 16.3, React 19.2, Tailwind 4, Leaflet 1.9 | Início, orientações e registro com mapa — etapas C1 a C3 |
 
 Dependências da API acrescentadas durante a implementação, ambas registradas na etapa em que
 entraram: **`@prisma/adapter-pg`** (B0 — o Prisma 7 exige um *driver adapter* explícito, o que o
@@ -944,9 +986,8 @@ E, no código:
 
 Registrado explicitamente, para que a ausência não seja confundida com esquecimento:
 
-- **no Portal do Cidadão**, faltam o `<LocationPicker>` (etapa C3), a tela dedicada de
-  confirmação e o acompanhamento por protocolo (etapa C4) e o fechamento de acessibilidade e
-  desempenho (etapa C5);
+- **no Portal do Cidadão**, faltam a tela dedicada de confirmação e o acompanhamento por
+  protocolo (etapa C4) e o fechamento de acessibilidade e desempenho (etapa C5);
 - **`RF-OP-08`** — voltar à tela pretendida depois de um login provocado por expiração de
   sessão — **não foi implementado**. É *Desejável*, e o Portal de Operações foi encerrado em O7
   sem ele; ficou sem registro até a conferência de 1º de outubro. Hoje a expiração leva ao login
@@ -962,13 +1003,12 @@ Registrado explicitamente, para que a ausência não seja confundida com esqueci
 
 ## 5. Próximo passo
 
-**Etapa C3 — Mapa e localização**, do
-[plano de implementação](plano-de-implementacao.md#c3-mapa-e-localização): o componente
-`<LocationPicker>` com `dynamic(..., { ssr: false })`, a geolocalização do aparelho apenas por
-ação explícita, e a degradação quando o mapa não carrega ou a permissão é negada.
+**Etapa C4 — Protocolo e acompanhamento**, do
+[plano de implementação](plano-de-implementacao.md#c4-protocolo-e-acompanhamento): a tela
+`/registrar/confirmacao` com o protocolo em destaque e botão de copiar, e `/acompanhar` com a
+consulta por protocolo e a situação com o histórico visível.
 
-O formulário já funciona sem o mapa — o que é o próprio `RNF-CID-26`. A etapa C3 acrescenta o
-ponto como dado complementar, sem torná-lo necessário.
+É a última etapa de função do projeto: depois dela só falta o fechamento de qualidade em C5.
 
 ## 6. Como manter este documento
 

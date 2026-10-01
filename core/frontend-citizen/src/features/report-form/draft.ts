@@ -13,6 +13,14 @@ export interface ReportDraft {
   type: ReportType | '';
   address: string;
   district: string;
+  /**
+   * Ponto no mapa, como texto e vazio por padrão.
+   *
+   * Complementar: o endereço é o dado obrigatório, e o registro conclui sem
+   * coordenada nenhuma (RF-CID-13).
+   */
+  latitude: string;
+  longitude: string;
   description: string;
   /** Quando verdadeiro, os dados de contato são descartados no envio. */
   anonymous: boolean;
@@ -26,6 +34,8 @@ export const emptyDraft: ReportDraft = {
   type: '',
   address: '',
   district: '',
+  latitude: '',
+  longitude: '',
   description: '',
   anonymous: false,
   name: '',

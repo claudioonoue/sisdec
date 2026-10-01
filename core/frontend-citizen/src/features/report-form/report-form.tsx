@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import type { PublicMetadata } from '@/types/metadata';
 import type { ReportCategory, ReportType } from '@/types/enums';
 import { EmergencyNotice } from '@/components/emergency-notice';
+import { LocationField } from '@/components/map/location-field';
 import { submitReport } from './actions';
 import { CONTROL_CLASS, Field } from './field';
 import { DESCRIPTION_MAX, LAST_STEP, STEPS, emptyDraft, type ReportDraft } from './draft';
@@ -11,6 +12,7 @@ import { PhotoPicker } from './photo-picker';
 import { StepProgress } from './step-progress';
 import { SubmittedPanel } from './submitted-panel';
 import { initialSubmitResult, type SubmitResult } from './submit-result';
+import { formatCoordinates, parseCoordinates } from './coordinates';
 import { firstInvalidStep, validateStep, type StepErrors } from './validation';
 import type { PhotoRejection } from './photos';
 
@@ -68,6 +70,8 @@ export function ReportForm({ metadata }: { metadata: PublicMetadata }) {
     formData.set('description', draft.description);
     formData.set('address', draft.address);
     formData.set('district', draft.district);
+    formData.set('latitude', draft.latitude);
+    formData.set('longitude', draft.longitude);
     formData.set('anonymous', String(draft.anonymous));
     formData.set('name', draft.name);
     formData.set('email', draft.email);
@@ -206,10 +210,17 @@ export function ReportForm({ metadata }: { metadata: PublicMetadata }) {
             )}
           </Field>
 
-          <p className="rounded-md bg-surface-muted p-3 text-sm text-ink-muted">
-            Em breve será possível ajustar o ponto exato no mapa. Por ora, o endereço acima é o
-            que orienta a equipe.
-          </p>
+          <LocationField
+            value={parseCoordinates(draft.latitude, draft.longitude)}
+            onChange={(point) =>
+              setDraft((current) => ({
+                ...current,
+                latitude: String(point.latitude),
+                longitude: String(point.longitude),
+              }))
+            }
+            onClear={() => setDraft((current) => ({ ...current, latitude: '', longitude: '' }))}
+          />
         </fieldset>
       ) : null}
 
@@ -387,6 +398,7 @@ function ReviewStep({
 }) {
   const categoria = metadata.reportCategories.find((item) => item.value === draft.category)?.label;
   const tipo = metadata.reportTypes.find((item) => item.value === draft.type)?.label;
+  const pontoRevisado = parseCoordinates(draft.latitude, draft.longitude);
 
   const blocos = [
     {
@@ -403,6 +415,10 @@ function ReviewStep({
       rows: [
         ['Endereço', draft.address],
         ['Bairro', draft.district],
+        [
+          'Ponto no mapa',
+          pontoRevisado ? formatCoordinates(pontoRevisado) : 'Não marcado',
+        ],
       ],
     },
     {

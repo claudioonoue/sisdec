@@ -97,15 +97,16 @@ npm run dev                   # http://localhost:3002 (porta já fixada no scrip
 
 ## 8. Situação
 
-🚧 Em construção — **etapas C1 e C2 concluídas**.
+🚧 Em construção — **etapas C1 a C3 concluídas**.
 
 | Tela | Rota | Situação |
 |---|---|---|
 | Início | `/` | ✅ Dois caminhos e aviso de emergência |
 | Orientações | `/orientacoes` | ✅ Situações urgentes vindas de `GET /metadata` |
-| Registrar | `/registrar` | ✅ Formulário em 5 etapas, com fotos — **sem o mapa** (etapa C3) |
+| Registrar | `/registrar` | ✅ Formulário em 5 etapas, com fotos e ponto no mapa |
 | Confirmação | `/registrar/confirmacao` | ⬜ Etapa C4 |
 | Acompanhar | `/acompanhar` | ⬜ Etapa C4 |
 
 Fundação pronta: cliente HTTP único em `lib/`, tipos da API em `types/`, tokens de cor com
-contraste AA conferido por teste, área de toque de 44 px e fronteira de erro. 107 testes.
+contraste AA conferido por teste, área de toque de 44 px e fronteira de erro. O Leaflet fica
+isolado em `components/map/`, fora do pacote inicial. 134 testes.
