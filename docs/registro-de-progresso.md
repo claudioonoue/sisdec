@@ -944,8 +944,13 @@ E, no código:
 
 Registrado explicitamente, para que a ausência não seja confundida com esquecimento:
 
-- **nenhuma tela no Portal do Cidadão** além da página inicial do `create-next-app` — sem
-  cliente HTTP, sem tipos da API e sem o componente `<LocationPicker>`; são as etapas C1 a C5;
+- **no Portal do Cidadão**, faltam o `<LocationPicker>` (etapa C3), a tela dedicada de
+  confirmação e o acompanhamento por protocolo (etapa C4) e o fechamento de acessibilidade e
+  desempenho (etapa C5);
+- **`RF-OP-08`** — voltar à tela pretendida depois de um login provocado por expiração de
+  sessão — **não foi implementado**. É *Desejável*, e o Portal de Operações foi encerrado em O7
+  sem ele; ficou sem registro até a conferência de 1º de outubro. Hoje a expiração leva ao login
+  e, de lá, ao painel;
 - **nenhum teste de tela nem de Server Action no Portal de Operações** — os 53 testes cobrem as
   peças que decidem algo; telas inteiras dependem da API no ar e seguem verificadas pelo
   percurso manual descrito em cada etapa;
