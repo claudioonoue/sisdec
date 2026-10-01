@@ -11,9 +11,8 @@ export function SiteHeader() {
   return (
     <header className="border-b border-border bg-surface">
       <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-4 py-3">
-        <Link href="/" className="font-bold text-brand">
+        <Link href="/" aria-label="SISDEC — ir para o início" className="font-bold text-brand">
           SISDEC
-          <span className="sr-only"> — início</span>
         </Link>
 
         <nav aria-label="Navegação principal">

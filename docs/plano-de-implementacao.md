@@ -371,7 +371,10 @@ tratamento de exceção acrescentado depois.
 **Depende de**: B3, B4, C1
 **Fecha**: `RF-CID-05` a `RF-CID-10`, `RF-CID-14` a `RF-CID-24`, `RF-CID-39` ·
 `RNF-CID-01` a `RNF-CID-06`, `RNF-CID-12`, `RNF-CID-13`, `RNF-CID-16`, `RNF-CID-17`,
-`RNF-CID-18`, `RNF-CID-23`, `RNF-CID-27` a `RNF-CID-31`, `RNF-CID-34`, `RNF-CID-35`
+`RNF-CID-18`, `RNF-CID-27` a `RNF-CID-31`, `RNF-CID-34`, `RNF-CID-35`
+
+> `RNF-CID-23` (compressão das fotos no navegador) estava listado aqui, mas a tarefa
+> correspondente é da etapa **C5** — corrigido na etapa C2, que percebeu a divergência.
 
 ## C3. Mapa e localização
 
@@ -406,7 +409,8 @@ tratamento de exceção acrescentado depois.
 
 **Depende de**: C3, C4
 **Fecha**: `RNF-CID-07`, `RNF-CID-08`, `RNF-CID-11`, `RNF-CID-15`, `RNF-CID-21`,
-`RNF-CID-24`, `RNF-CID-25`, `RNF-CID-40`, `RNF-CID-41`, `RNF-CID-43` a `RNF-CID-48`
+`RNF-CID-23`, `RNF-CID-24`, `RNF-CID-25`, `RNF-CID-40`, `RNF-CID-41`, `RNF-CID-43` a
+`RNF-CID-48`
 
 ---
 

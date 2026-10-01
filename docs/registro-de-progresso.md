@@ -7,7 +7,7 @@ O que já foi construído no SISDEC, o que ainda não existe e qual é o próxim
 > um item só é marcado como pronto quando está verificado e commitado.
 
 Última atualização: **1º de outubro de 2026** — API e Portal de Operações concluídos, e
-**etapa C1** do Portal do Cidadão.
+**etapas C1 e C2** do Portal do Cidadão.
 
 ---
 
@@ -41,19 +41,20 @@ O que já foi construído no SISDEC, o que ainda não existe e qual é o próxim
 | Conjunto de dados de demonstração | ✅ `make seed-demo`, documentado em [dados-de-demonstracao.md](backend/dados-de-demonstracao.md) |
 | Atalhos de desenvolvimento | ✅ `Makefile` na raiz, sem acoplar os três projetos |
 | Fundação e orientação do Portal do Cidadão (etapa C1) | ✅ Concluída e verificada |
-| **Portal do Cidadão — registro e acompanhamento** | ⬜ Etapas C2 a C5 |
+| Formulário de registro, sem o mapa (etapa C2) | ✅ Concluída e verificada |
+| **Portal do Cidadão — mapa e acompanhamento** | ⬜ Etapas C3 a C5 |
 
-Em uma frase: **a API e o Portal de Operações estão prontos; o Portal do Cidadão já tem
-fundação, página inicial e orientações — falta o formulário de registro e o acompanhamento.**
+Em uma frase: **a API e o Portal de Operações estão prontos; o cidadão já consegue registrar
+uma ocorrência com fotos e receber o protocolo — faltam o mapa e o acompanhamento.**
 
 | Métrica | Hoje |
 |---|---|
 | Rotas da API implementadas | 27 de 27 do contrato |
 | Testes no backend | 160 unitários + 124 end-to-end |
 | Testes no Portal de Operações | 53 |
-| Testes no Portal do Cidadão | 41 |
+| Testes no Portal do Cidadão | 107 |
 | Requisitos especificados | 335, dos quais 248 das duas aplicações já prontas |
-| Etapas do plano concluídas | 16 de 20 |
+| Etapas do plano concluídas | 17 de 20 |
 
 ## 2. Linha do tempo
 
@@ -791,6 +792,49 @@ velha, com os metadados em memória. Só notei ao conferir o log do processo. Re
 o servidor certo, o comportamento é o previsto: mensagem compreensível, telefones repetidos e
 nenhum erro técnico.
 
+### 1º de outubro de 2026 — etapa C2: formulário de registro, sem o mapa
+
+Conforme o [plano](plano-de-implementacao.md#c2-formulário-de-registro-sem-o-mapa). O cidadão já
+registra uma ocorrência com fotos e recebe o protocolo.
+
+- Formulário em cinco etapas, com indicação de progresso em texto, validação por etapa e
+  retorno sem perda do que foi digitado.
+- Etapa 1 reforça o aviso de emergência quando o tipo escolhido é de risco imediato à vida.
+- Etapa 3 com descrição e até 5 fotos, com prévia, remoção e recusa local pelos limites vindos
+  de `metadata.upload`.
+- Etapa 4 com nome, e-mail e telefone opcionais, e "prefiro não me identificar".
+- Etapa 5 com revisão e atalho para corrigir cada etapa, e o envio em duas chamadas.
+- 66 testes novos; 107 no portal.
+
+Quatro decisões:
+
+- **O estado vive no cliente**, porque as fotos são objetos `File`. Mantê-las no servidor
+  exigiria subi-las antes de a pessoa terminar de preencher, e uma desistência deixaria arquivos
+  órfãos no `UPLOAD_DIR`.
+- **A validação é função pura, fora do React** (`validation.ts`). É o que permite testá-la sem
+  montar a tela, e concentra a decisão de "pode avançar?" em um lugar em vez de espalhá-la pelos
+  componentes de cada etapa.
+- **O envio confere o rascunho inteiro, não só a etapa atual.** Alguém pode preencher tudo,
+  voltar à etapa 2, apagar o bairro e tentar enviar da revisão; `firstInvalidStep` leva de volta
+  à etapa pendente em vez de deixar a API recusar. Há teste para esse percurso.
+- **Falha nas fotos não apaga o registro** (`RF-CID-24`). A ocorrência já está criada quando o
+  envio dos anexos começa, então o protocolo aparece de todo modo, com um aviso — esconder o
+  número tiraria da pessoa a única forma de acompanhar o atendimento.
+
+**Um defeito de acessibilidade que o teste pegou.** Três botões e links montavam o nome
+acessível juntando texto visível com um `<span class="sr-only">`. O JSX colapsa o espaço entre os
+dois, e o leitor de tela anunciaria "Removera foto arvore.jpg" e "SISDEC— início". Passaram a
+declarar `aria-label` por inteiro, e há teste fixando o comportamento. O defeito é invisível na
+tela: só aparece ao pedir o nome acessível, que é exatamente o que o teste faz.
+
+**Uma divergência no plano, corrigida.** O `RNF-CID-23` (compressão das fotos no navegador)
+estava listado na cobertura de C2, mas a tarefa correspondente é de C5. A atribuição foi
+movida; a compressão não entrou nesta etapa.
+
+Sobre a tela de confirmação: o protocolo já aparece em destaque ao final do envio, para que o
+fluxo de C2 esteja completo. A rota dedicada `/registrar/confirmacao`, com botão de copiar e o
+alerta de guardar o número, é a etapa **C4**.
+
 ## 3. O que está pronto, em detalhe
 
 ### 3.1 Infraestrutura e ambiente
@@ -809,7 +853,7 @@ nenhum erro técnico.
 |---|---|---|
 | API | NestJS 12, Prisma 7.10, TypeScript 6, Vitest 4.1 | As 27 rotas do contrato, com prefixo `/api/v1`, CORS por `CORS_ORIGINS`, `ValidationPipe` com `whitelist` e `forbidNonWhitelisted`, e Swagger em `/api/docs` |
 | Portal de Operações | Next.js 16.3, React 19.2, Tailwind 4, Leaflet 1.9 | **Concluído** — etapas O1 a O7 |
-| Portal do Cidadão | Next.js 16.3, React 19.2, Tailwind 4, Leaflet 1.9 | Início e orientações — etapa C1 |
+| Portal do Cidadão | Next.js 16.3, React 19.2, Tailwind 4, Leaflet 1.9 | Início, orientações e registro — etapas C1 e C2 |
 
 Dependências da API acrescentadas durante a implementação, ambas registradas na etapa em que
 entraram: **`@prisma/adapter-pg`** (B0 — o Prisma 7 exige um *driver adapter* explícito, o que o
@@ -913,14 +957,13 @@ Registrado explicitamente, para que a ausência não seja confundida com esqueci
 
 ## 5. Próximo passo
 
-**Etapa C2 — Formulário de registro, sem o mapa**, do
-[plano de implementação](plano-de-implementacao.md#c2-formulário-de-registro-sem-o-mapa): a
-máquina de etapas com indicação de progresso, as cinco etapas do formulário e o envio por
-`POST /reports` seguido de `POST /reports/:id/attachments`.
+**Etapa C3 — Mapa e localização**, do
+[plano de implementação](plano-de-implementacao.md#c3-mapa-e-localização): o componente
+`<LocationPicker>` com `dynamic(..., { ssr: false })`, a geolocalização do aparelho apenas por
+ação explícita, e a degradação quando o mapa não carrega ou a permissão é negada.
 
-Construído **antes** do mapa de propósito: o `RNF-CID-26` exige que o registro funcione quando o
-Leaflet não carrega, e começar sem o mapa garante que esse caminho seja o padrão, não um
-tratamento de exceção acrescentado depois.
+O formulário já funciona sem o mapa — o que é o próprio `RNF-CID-26`. A etapa C3 acrescenta o
+ponto como dado complementar, sem torná-lo necessário.
 
 ## 6. Como manter este documento
 
