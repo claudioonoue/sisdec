@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { MARKER_ANCHOR, MARKER_HEIGHT, MARKER_WIDTH, createMarkerElement } from './marker-element';
 
 /**
  * `<LocationPicker>` — o **único** ponto do portal que importa o Leaflet
@@ -72,6 +73,14 @@ export function LocationPicker({
     }).addTo(map);
 
     const marker = L.marker([start.latitude, start.longitude], {
+      // Ícone próprio: o padrão do Leaflet pede imagens na raiz do site, que não
+      // existem — ver `marker-element.ts`.
+      icon: L.divIcon({
+        className: '',
+        html: createMarkerElement(),
+        iconSize: [MARKER_WIDTH, MARKER_HEIGHT],
+        iconAnchor: MARKER_ANCHOR,
+      }),
       draggable: true,
       // Com o marcador alcançável pelo teclado, arrastar deixa de ser a única
       // forma de posicioná-lo (RNF-CID-15).
