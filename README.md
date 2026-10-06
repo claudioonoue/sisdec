@@ -78,7 +78,8 @@ mapa não têm o que exibir.
 | `make api` / `make ops` / `make cid` | Sobe **uma** aplicação, em primeiro plano |
 | `make stop` | Derruba o que tiver ficado ocupando as portas 3000–3002 |
 | `make check` | `tsc`, lint e testes das três aplicações |
-| `make test-e2e` | Testes end-to-end da API |
+| `make test` | Só os testes unitários das três aplicações |
+| `make test-e2e` | Testes end-to-end da API (exige o banco no ar) |
 | `make db` / `make db-stop` / `make db-reset` | Banco de dados |
 
 ### O Makefile não é um sistema de build

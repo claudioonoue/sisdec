@@ -163,11 +163,10 @@ lint: ## Lint nas três aplicações
 	  echo "--> lint em $$app"; (cd $$app && npm run lint) || exit 1; \
 	done
 
-test: ## Testes unitários da API e do Portal de Operações
-	@echo "--> testes em $(BACKEND)"
-	@(cd $(BACKEND) && npm test)
-	@echo "--> testes em $(OPERATIONS)"
-	@(cd $(OPERATIONS) && npm test)
+test: ## Testes unitários das três aplicações
+	@for app in $(APPS); do \
+	  echo "--> testes em $$app"; (cd $$app && npm test) || exit 1; \
+	done
 
 test-e2e: db ## Testes end-to-end da API (exige o banco no ar)
 	@(cd $(BACKEND) && npm run test:e2e)
